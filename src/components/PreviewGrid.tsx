@@ -43,7 +43,7 @@ export function PreviewGrid({ images, loading, error, onRegenerate, className = 
             onClick={onRegenerate}
             disabled={loading}
           >
-            동일 조건 재생성
+            이미지 재생성
           </button>
         )}
       </div>

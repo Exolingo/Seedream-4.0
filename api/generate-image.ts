@@ -1,29 +1,38 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+import type { VercelRequest, VercelResponse } from "@vercel/node";
+
+const ARK_BASE = "https://ark.ap-southeast.bytepluses.com";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
+  if (req.method !== "POST") {
+    res.setHeader("Allow", "POST");
+    return res.status(405).json({ error: { message: "Method Not Allowed" } });
+  }
+
+  const ARK_API_KEY = process.env.ARK_API_KEY;
+  if (!ARK_API_KEY) {
+    return res
+      .status(500)
+      .json({ error: { message: "ARK_API_KEY is not configured." } });
+  }
 
   try {
-    let raw = (process.env.ARK_API_KEY || '').trim();
-    if (!raw) return res.status(500).json({ error: 'ARK_API_KEY is missing (server env)' });
-    if (raw.toLowerCase().startsWith('bearer ')) raw = raw.slice(7).trim();
+    const arkRes = await fetch(`${ARK_BASE}/api/v3/images/generations`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${ARK_API_KEY}`,
+      },
+      body: JSON.stringify(req.body),
+    });
 
-    const upstream = await fetch(
-      'https://ark.ap-southeast.bytepluses.com/api/v3/images/generations',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${raw}`,
-        },
-        body: JSON.stringify(req.body),
-      }
-    );
-
-    const ct = upstream.headers.get('content-type') || '';
-    const body = ct.includes('application/json') ? await upstream.json() : await upstream.text();
-    return res.status(upstream.status).send(body);
-  } catch (e: any) {
-    return res.status(500).json({ error: 'Proxy failed', detail: String(e) });
+    const text = await arkRes.text(); // Ark 응답을 그대로 중계
+    res.status(arkRes.status);
+    res.setHeader("Content-Type", "application/json");
+    res.setHeader("Cache-Control", "no-store");
+    return res.send(text);
+  } catch (err) {
+    return res
+      .status(502)
+      .json({ error: { message: `Proxy error: ${(err as Error).message}` } });
   }
 }

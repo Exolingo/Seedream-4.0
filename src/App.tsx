@@ -84,7 +84,7 @@ export default function App() {
               rel="noreferrer"
               className="rounded-md bg-primary px-3 py-1 text-sm font-medium text-primary-foreground transition hover:bg-primary/80"
             >
-              ModelArk 문서
+              ModelArk 공식문서
             </a>
           </div>
         </div>

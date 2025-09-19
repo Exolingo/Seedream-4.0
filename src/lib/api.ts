@@ -1,4 +1,4 @@
-import type { GeneratedImage } from '../types/history';
+import type { AspectRatio, GeneratedImage } from '../types/history';
 
 export interface SeedreamRequestBase {
   model?: string;
@@ -10,6 +10,7 @@ export interface SeedreamRequestBase {
   seed?: number;
   steps?: number;
   guidance_scale?: number;
+  aspect_ratio?: AspectRatio;
 }
 
 export interface SeedreamTextToImageRequest extends SeedreamRequestBase {
@@ -143,6 +144,7 @@ export async function requestSeedreamImages(
     size: payload.size,
     width: payload.width,
     height: payload.height,
+    aspect_ratio: payload.aspect_ratio,
     stream: payload.stream ?? false,
     watermark: payload.watermark ?? true,
     sequential_image_generation: payload.sequential_image_generation ?? 'disabled',

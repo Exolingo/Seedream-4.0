@@ -79,7 +79,7 @@ async function fetchWithRetry(
   input: RequestInfo | URL,
   init: RequestInit & RetryOptions = {},
 ): Promise<Response> {
-  const { retries = 2, retryDelayMs = 500, backoffFactor = 2, signal, ...rest } = init;
+  const { retries = 0, retryDelayMs = 500, backoffFactor = 2, signal, ...rest } = init;
 
   let attempt = 0;
   let lastError: unknown;

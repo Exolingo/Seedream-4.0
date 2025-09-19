@@ -134,9 +134,6 @@ export async function requestSeedreamImages(
   payload: SeedreamTextToImageRequest | SeedreamImageToImageRequest,
   signal?: AbortSignal,
 ): Promise<SeedreamResponse> {
-  if (!arkBase || !arkApiKey) {
-    throw new Error('Seedream API is not configured.');
-  }
 
   const body = {
     model: payload.model ?? DEFAULT_MODEL,

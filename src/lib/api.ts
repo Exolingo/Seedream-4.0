@@ -1,0 +1,242 @@
+import type { GeneratedImage } from '../types/history';
+
+export interface SeedreamRequestBase {
+  model?: string;
+  prompt: string;
+  response_format?: 'url' | 'b64_json';
+  stream?: boolean;
+  watermark?: boolean;
+  sequential_image_generation?: 'disabled' | 'enabled';
+  seed?: number;
+  steps?: number;
+  guidance_scale?: number;
+}
+
+export interface SeedreamTextToImageRequest extends SeedreamRequestBase {
+  size?: string;
+  width?: number;
+  height?: number;
+}
+
+export interface SeedreamImageToImageRequest extends SeedreamTextToImageRequest {
+  image: string;
+  references?: string[];
+}
+
+export interface SeedreamResponse {
+  model: string;
+  created: number;
+  data: GeneratedImage[];
+}
+
+export interface PromptEnhancementPayload {
+  prompt: string;
+  mode: 't2i' | 'i2i';
+  maxTokens?: number;
+}
+
+export interface PromptEnhancementResponse {
+  enhanced: string;
+  rationale?: string;
+}
+
+const DEFAULT_MODEL = 'seedream-4-0-250828';
+const DEFAULT_RESPONSE_FORMAT: SeedreamRequestBase['response_format'] = 'url';
+
+const arkBase = import.meta.env.VITE_ARK_BASE;
+const arkApiKey = import.meta.env.VITE_ARK_API_KEY;
+const chatGptBase = import.meta.env.VITE_CHATGPT_BASE;
+const chatGptKey = import.meta.env.VITE_CHATGPT_API_KEY;
+
+if (import.meta.env.DEV) {
+  if (!arkBase) {
+    // eslint-disable-next-line no-console
+    console.warn('VITE_ARK_BASE is not configured. API calls will fail.');
+  }
+  if (!arkApiKey) {
+    // eslint-disable-next-line no-console
+    console.warn('VITE_ARK_API_KEY is not configured. API calls will fail.');
+  }
+  if (!chatGptBase) {
+    // eslint-disable-next-line no-console
+    console.warn('VITE_CHATGPT_BASE is not configured. Prompt enhancement will fail.');
+  }
+  if (!chatGptKey) {
+    // eslint-disable-next-line no-console
+    console.warn('VITE_CHATGPT_API_KEY is not configured. Prompt enhancement will fail.');
+  }
+}
+
+interface RetryOptions {
+  retries?: number;
+  retryDelayMs?: number;
+  backoffFactor?: number;
+}
+
+const RETRYABLE_STATUS = new Set([408, 425, 429, 500, 502, 503, 504]);
+
+async function fetchWithRetry(
+  input: RequestInfo | URL,
+  init: RequestInit & RetryOptions = {},
+): Promise<Response> {
+  const { retries = 2, retryDelayMs = 500, backoffFactor = 2, signal, ...rest } = init;
+
+  let attempt = 0;
+  let lastError: unknown;
+  const controller = new AbortController();
+
+  if (signal) {
+    signal.addEventListener('abort', () => controller.abort(signal.reason), { once: true });
+  }
+
+  while (attempt <= retries) {
+    try {
+      const response = await fetch(input, { ...rest, signal: controller.signal });
+      if (!response.ok && RETRYABLE_STATUS.has(response.status) && attempt < retries) {
+        await delay(retryDelayMs * backoffFactor ** attempt, signal);
+        attempt += 1;
+        continue;
+      }
+      return response;
+    } catch (error) {
+      if ((error as DOMException).name === 'AbortError') {
+        throw error;
+      }
+      lastError = error;
+      if (attempt >= retries) {
+        break;
+      }
+      await delay(retryDelayMs * backoffFactor ** attempt, signal);
+      attempt += 1;
+    }
+  }
+  throw lastError ?? new Error('Request failed');
+}
+
+async function delay(ms: number, signal?: AbortSignal) {
+  if (signal?.aborted) {
+    throw new DOMException('Aborted', 'AbortError');
+  }
+  return new Promise<void>((resolve, reject) => {
+    const id = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort);
+      resolve();
+    }, ms);
+    const onAbort = () => {
+      clearTimeout(id);
+      reject(new DOMException('Aborted', 'AbortError'));
+    };
+    signal?.addEventListener('abort', onAbort, { once: true });
+  });
+}
+
+export async function requestSeedreamImages(
+  payload: SeedreamTextToImageRequest | SeedreamImageToImageRequest,
+  signal?: AbortSignal,
+): Promise<SeedreamResponse> {
+  if (!arkBase || !arkApiKey) {
+    throw new Error('Seedream API is not configured.');
+  }
+
+  const body = {
+    model: payload.model ?? DEFAULT_MODEL,
+    prompt: payload.prompt,
+    response_format: payload.response_format ?? DEFAULT_RESPONSE_FORMAT,
+    size: payload.size,
+    width: payload.width,
+    height: payload.height,
+    stream: payload.stream ?? false,
+    watermark: payload.watermark ?? true,
+    sequential_image_generation: payload.sequential_image_generation ?? 'disabled',
+    image: (payload as SeedreamImageToImageRequest).image,
+    images: (payload as SeedreamImageToImageRequest).references,
+    seed: payload.seed,
+    steps: payload.steps,
+    guidance_scale: payload.guidance_scale,
+  };
+
+  const response = await fetchWithRetry(
+    `${arkBase}/images/generations`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${arkApiKey}`,
+      },
+      body: JSON.stringify(body),
+      signal,
+    },
+  );
+
+  if (!response.ok) {
+    const message = await extractErrorMessage(response);
+    throw new Error(message);
+  }
+
+  return (await response.json()) as SeedreamResponse;
+}
+
+export async function enhancePrompt(
+  payload: PromptEnhancementPayload,
+  signal?: AbortSignal,
+): Promise<PromptEnhancementResponse> {
+  if (!chatGptBase || !chatGptKey) {
+    throw new Error('ChatGPT API is not configured.');
+  }
+
+  const body = {
+    model: 'gpt-4o-mini',
+    messages: [
+      {
+        role: 'system',
+        content:
+          'You are a creative prompt engineer enhancing prompts for Seedream 4.0 image generation. The output must be under 500 characters and safe for work.',
+      },
+      {
+        role: 'user',
+        content: `Mode: ${payload.mode}. Prompt: ${payload.prompt}`,
+      },
+    ],
+    max_output_tokens: payload.maxTokens ?? 400,
+  };
+
+  const response = await fetchWithRetry(
+    `${chatGptBase}/chat/completions`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${chatGptKey}`,
+      },
+      body: JSON.stringify(body),
+      signal,
+    },
+  );
+
+  if (!response.ok) {
+    const message = await extractErrorMessage(response);
+    throw new Error(message);
+  }
+
+  const json = await response.json();
+  const content: string = json.choices?.[0]?.message?.content ?? payload.prompt;
+  return {
+    enhanced: content.trim(),
+    rationale: json.choices?.[0]?.message?.refusal ?? undefined,
+  };
+}
+
+async function extractErrorMessage(response: Response): Promise<string> {
+  try {
+    const data = await response.json();
+    if (typeof data?.error === 'string') {
+      return data.error;
+    }
+    if (data?.error?.message) {
+      return data.error.message;
+    }
+    return JSON.stringify(data);
+  } catch (error) {
+    return `${response.status} ${response.statusText}`;
+  }
+}

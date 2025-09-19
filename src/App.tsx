@@ -1,14 +1,15 @@
 import { useEffect } from 'react';
-import { TextToImagePanel } from './components/TextToImagePanel';
 import { ImageToImagePanel } from './components/ImageToImagePanel';
-import { useAppStore } from './store/appStore';
-import type { EditorTab, HistoryItem } from './types/history';
+import LogoutButton from './components/LogoutButton';
+import { TextToImagePanel } from './components/TextToImagePanel';
 import { HistoryDrawer } from './features/history/HistoryDrawer';
+import { useAppStore } from './store/appStore';
 import { applyTheme } from './theme/color';
+import type { EditorTab, HistoryItem } from './types/history';
 
 const tabs: { id: EditorTab; label: string; description: string }[] = [
   { id: 't2i', label: '텍스트 → 이미지', description: '프롬프트만으로 Seedream 4.0 이미지를 생성합니다.' },
-  { id: 'i2i', label: '이미지 → 이미지', description: '기존 이미지를 업로드하고 프롬프트로 변주합니다.' },
+  { id: 'i2i', label: '이미지 → 이미지', description: '원본 이미지를 업로드하고 참조 이미지로 합성합니다.' },
 ];
 
 export default function App() {
@@ -78,6 +79,10 @@ export default function App() {
             >
               히스토리
             </button>
+
+            <span className="hidden sm:block h-5 w-px bg-border mx-1" aria-hidden="true" />
+            <LogoutButton />
+
             <a
               href="https://www.byteplus.com/en/modelark"
               target="_blank"

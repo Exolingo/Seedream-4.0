@@ -155,18 +155,12 @@ export async function requestSeedreamImages(
     guidance_scale: payload.guidance_scale,
   };
 
-  const response = await fetchWithRetry(
-    `${arkBase}/images/generations`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${arkApiKey}`,
-      },
-      body: JSON.stringify(body),
-      signal,
-    },
-  );
+  const response = await fetchWithRetry('/api/generate-image', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(body),
+  signal,
+});
 
   if (!response.ok) {
     const message = await extractErrorMessage(response);

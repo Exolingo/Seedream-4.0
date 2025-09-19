@@ -1,47 +1,33 @@
-export const config = { runtime: "edge" };
-
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
+import type { VercelRequest, VercelResponse } from "@vercel/node";
 
-export default async function handler(req: Request) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
-    return new Response(
-      JSON.stringify({ error: { message: "Method Not Allowed" } }),
-      {
-        status: 405,
-        headers: { "content-type": "application/json" },
-      }
-    );
+    res.setHeader("Allow", "POST");
+    return res.status(405).json({ error: { message: "Method Not Allowed" } });
   }
 
   const token = process.env.BLOB_READ_WRITE_TOKEN;
-  if (!token) {
-    return new Response(
-      JSON.stringify({
-        error: { message: "BLOB_READ_WRITE_TOKEN is missing" },
-      }),
-      {
-        status: 500,
-        headers: { "content-type": "application/json" },
-      }
-    );
-  }
-
-  let body: HandleUploadBody;
-  try {
-    body = (await req.json()) as HandleUploadBody;
-  } catch {
-    return new Response(
-      JSON.stringify({ error: { message: "Invalid JSON body" } }),
-      {
-        status: 400,
-        headers: { "content-type": "application/json" },
-      }
-    );
-  }
+  if (!token)
+    return res
+      .status(500)
+      .json({ error: { message: "BLOB_READ_WRITE_TOKEN is missing" } });
 
   try {
+    const body = req.body as HandleUploadBody;
+
+    const url = new URL(
+      req.url ?? "/api/blob/upload",
+      `https://${req.headers.host ?? "localhost"}`
+    );
+    const stdReq = new Request(url.toString(), {
+      method: "POST",
+      headers: req.headers as any,
+      body: JSON.stringify(body),
+    });
+
     const result = await handleUpload({
-      request: req,
+      request: stdReq,
       body,
       token,
       onBeforeGenerateToken: async (_pathname, clientPayload, _multipart) => ({
@@ -49,25 +35,12 @@ export default async function handler(req: Request) {
         addRandomSuffix: true,
         tokenPayload: clientPayload ?? "",
       }),
-      onUploadCompleted: async (_info) => {
-        console.log("upload completed : ", _info);
-      },
+      onUploadCompleted: async () => {},
     });
 
-    return new Response(JSON.stringify(result), {
-      status: 200,
-      headers: {
-        "content-type": "application/json",
-        "cache-control": "no-store",
-      },
-    });
+    res.setHeader("Cache-Control", "no-store");
+    return res.status(200).json(result);
   } catch (e) {
-    return new Response(
-      JSON.stringify({ error: { message: (e as Error).message } }),
-      {
-        status: 400,
-        headers: { "content-type": "application/json" },
-      }
-    );
+    return res.status(400).json({ error: { message: (e as Error).message } });
   }
 }

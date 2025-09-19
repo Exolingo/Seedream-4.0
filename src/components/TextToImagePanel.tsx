@@ -21,13 +21,6 @@ export function TextToImagePanel() {
   const [enhancedPrompt, setEnhancedPrompt] = useState('');
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('16:9');
   const [resolution, setResolution] = useState<ResolutionPreset>('720p');
-  const [seed, setSeed] = useState<number | undefined>();
-  const [steps, setSteps] = useState<number>(30);
-  const [guidance, setGuidance] = useState<number>(7);
-  const [watermark, setWatermark] = useState(true);
-  const [stream, setStream] = useState(false);
-  const [sequential, setSequential] = useState<'disabled' | 'enabled'>('disabled');
-
   const [images, setImages] = useState<{ url: string; size: string }[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generateError, setGenerateError] = useState<string | undefined>();
@@ -48,12 +41,6 @@ export function TextToImagePanel() {
     setEnhancedPrompt(pendingHistory.promptEnhanced ?? '');
     setAspectRatio(pendingHistory.params.aspectRatio);
     setResolution(pendingHistory.params.resolution);
-    setSeed(pendingHistory.params.seed);
-    setSteps(pendingHistory.params.steps ?? 30);
-    setGuidance(pendingHistory.params.guidance ?? 7);
-    setWatermark(pendingHistory.params.watermark);
-    setStream(pendingHistory.params.stream);
-    setSequential(pendingHistory.params.sequentialImageGeneration);
     setLastRequest(null);
     setImages([]);
     setPendingHistory(null);
@@ -100,12 +87,6 @@ export function TextToImagePanel() {
           resolution,
           width: payload.width ?? dimensions.width,
           height: payload.height ?? dimensions.height,
-          seed: payload.seed,
-          steps: payload.steps,
-          guidance: payload.guidance_scale,
-          watermark: payload.watermark ?? true,
-          stream: payload.stream ?? false,
-          sequentialImageGeneration: payload.sequential_image_generation ?? 'disabled',
         };
         const historyItem: HistoryItem = {
           id: createId(),
@@ -140,15 +121,10 @@ export function TextToImagePanel() {
       prompt,
       width: dimensions.width,
       height: dimensions.height,
-      stream,
-      watermark,
-      sequential_image_generation: sequential,
-      seed,
-      steps,
-      guidance_scale: guidance,
+      aspect_ratio: aspectRatio,
     };
     void runGeneration(payload);
-  }, [dimensions.height, dimensions.width, enhancedPrompt, guidance, rawPrompt, runGeneration, seed, sequential, steps, stream, watermark]);
+  }, [aspectRatio, dimensions.height, dimensions.width, enhancedPrompt, rawPrompt, runGeneration]);
 
   const handleRegenerate = useCallback(() => {
     if (lastRequest) {
@@ -181,70 +157,6 @@ export function TextToImagePanel() {
             <span className="font-medium text-text">예상 해상도</span>
             <p className="mt-1">출력 결과는 약 {dimensions.width} × {dimensions.height} 픽셀로 생성됩니다.</p>
           </div>
-          <fieldset className="space-y-3 rounded-lg border border-border p-3">
-            <legend className="px-2 text-sm font-semibold">고급 파라미터</legend>
-            <div className="grid gap-3 sm:grid-cols-3">
-              <label className="flex flex-col gap-1 text-sm">
-                시드
-                <input
-                  type="number"
-                  value={seed ?? ''}
-                  onChange={(event) => setSeed(event.target.value ? Number(event.target.value) : undefined)}
-                  className="rounded-md border border-border bg-background p-2"
-                  placeholder="무작위"
-                />
-              </label>
-              <label className="flex flex-col gap-1 text-sm">
-                스텝
-                <input
-                  type="number"
-                  value={steps}
-                  min={10}
-                  max={150}
-                  onChange={(event) => setSteps(Number(event.target.value))}
-                  className="rounded-md border border-border bg-background p-2"
-                />
-              </label>
-              <label className="flex flex-col gap-1 text-sm">
-                가이던스
-                <input
-                  type="number"
-                  value={guidance}
-                  min={1}
-                  max={20}
-                  step={0.5}
-                  onChange={(event) => setGuidance(Number(event.target.value))}
-                  className="rounded-md border border-border bg-background p-2"
-                />
-              </label>
-            </div>
-          </fieldset>
-          <fieldset className="space-y-2 rounded-lg border border-border p-3 text-sm">
-            <legend className="px-2 text-sm font-semibold">생성 옵션</legend>
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={watermark}
-                onChange={(event) => setWatermark(event.target.checked)}
-                className="h-4 w-4"
-              />
-              워터마크 추가
-            </label>
-            <label className="flex items-center gap-2">
-              <input type="checkbox" checked={stream} onChange={(event) => setStream(event.target.checked)} className="h-4 w-4" />
-              스트리밍(베타)
-            </label>
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={sequential === 'enabled'}
-                onChange={(event) => setSequential(event.target.checked ? 'enabled' : 'disabled')}
-                className="h-4 w-4"
-              />
-              연속 이미지 생성 활성화
-            </label>
-          </fieldset>
-
           <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"

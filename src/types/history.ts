@@ -5,12 +5,6 @@ export interface HistoryParams {
   resolution: ResolutionPreset;
   width: number;
   height: number;
-  seed?: number;
-  steps?: number;
-  guidance?: number;
-  watermark: boolean;
-  stream: boolean;
-  sequentialImageGeneration: 'disabled' | 'enabled';
 }
 
 export interface HistoryItem {

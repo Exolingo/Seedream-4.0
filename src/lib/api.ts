@@ -135,6 +135,7 @@ export async function requestSeedreamImages(
   signal?: AbortSignal,
 ): Promise<SeedreamResponse> {
 
+  // Seedream 4.0에서는 guidance_scale 미지원 → 삭제함
   const body = {
     model: payload.model ?? DEFAULT_MODEL,
     prompt: payload.prompt,
@@ -149,9 +150,8 @@ export async function requestSeedreamImages(
     images: (payload as SeedreamImageToImageRequest).references,
     seed: payload.seed,
     steps: payload.steps,
-    guidance_scale: payload.guidance_scale,
   };
-
+  
   const response = await fetchWithRetry('/api/generate-image', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },

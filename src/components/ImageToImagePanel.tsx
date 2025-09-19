@@ -1,16 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AspectSelector } from './AspectSelector';
-import { ResolutionSelector } from './ResolutionSelector';
-import { PromptBox } from './PromptBox';
-import { PreviewGrid } from './PreviewGrid';
-import { computeDimensions } from '../lib/imageSizing';
-import { enhancePrompt, requestSeedreamImages, type SeedreamImageToImageRequest } from '../lib/api';
-import { prepareImageAsset } from '../lib/images';
-import { createId } from '../lib/id';
-import type { ImageAsset, ImageValidationError } from '../types/images';
 import { useHistoryStore } from '../features/history/historyStore';
+import { enhancePrompt, requestSeedreamImages, type SeedreamImageToImageRequest } from '../lib/api';
+import { createId } from '../lib/id';
+import { prepareImageAsset } from '../lib/images';
+import { computeDimensions } from '../lib/imageSizing';
 import { useAppStore } from '../store/appStore';
 import type { AspectRatio, HistoryItem, HistoryParams, ResolutionPreset } from '../types/history';
+import type { ImageAsset, ImageValidationError } from '../types/images';
+import { AspectSelector } from './AspectSelector';
+import { PreviewGrid } from './PreviewGrid';
+import { PromptBox } from './PromptBox';
+import { ResolutionSelector } from './ResolutionSelector';
 
 const REFERENCE_LIMIT = 8;
 
@@ -448,7 +448,7 @@ export function ImageToImagePanel() {
               className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/80 disabled:cursor-not-allowed disabled:bg-muted/40"
               disabled={isGenerating}
             >
-              {isGenerating ? '생성 중…' : '이미지 변주 생성하기'}
+              {isGenerating ? '생성 중…' : '이미지 생성하기'}
             </button>
             {generateError && <span className="text-sm text-red-600 dark:text-red-400">{generateError}</span>}
           </div>

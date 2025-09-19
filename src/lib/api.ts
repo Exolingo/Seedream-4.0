@@ -10,10 +10,10 @@ export interface SeedreamRequestBase {
   sequential_image_generation?: "disabled" | "auto";
   /** Optional: 4.0의 시퀀스 옵션 (필요 시 정의 확장) */
   sequential_image_generation_options?: Record<string, unknown>;
-  /** seedream-4.0에서는 seed/guidance_scale 미지원 */
-  seed?: number; // <- 유지하되 전송은 생략
+  /** seedream-4.0에서는 seed/guidance_scale 미지원 (보관만, 전송 X) */
+  seed?: number;
   steps?: number; // 명세에 없지만 사용 중이면 전달 가능
-  guidance_scale?: number; // <- 유지하되 전송은 생략
+  guidance_scale?: number; // 보관만, 전송 X
   aspect_ratio?: AspectRatio;
 }
 
@@ -23,7 +23,7 @@ export interface SeedreamTextToImageRequest extends SeedreamRequestBase {
   height?: number;
 }
 
-/** i2i 입력: image는 string | string[] 모두 허용 */
+/** i2i 입력: image는 단일/다중 모두 허용 */
 export interface SeedreamImageToImageRequest
   extends SeedreamTextToImageRequest {
   image: string | string[];
@@ -35,7 +35,6 @@ export interface SeedreamResponse {
   model: string;
   created: number;
   data: GeneratedImage[];
-  // usage?: { ... } // 필요시 확장
 }
 
 export interface PromptEnhancementPayload {
@@ -52,16 +51,11 @@ export interface PromptEnhancementResponse {
 const DEFAULT_MODEL = "seedream-4-0-250828";
 const DEFAULT_RESPONSE_FORMAT: SeedreamRequestBase["response_format"] = "url";
 
-const arkBase = import.meta.env.VITE_ARK_BASE; // 예: https://ark.ap-southeast.bytepluses.com
-const arkApiKey = import.meta.env.VITE_ARK_API_KEY;
+// Ark 직통 호출 제거 → 프록시만 사용
 const chatGptBase = import.meta.env.VITE_CHATGPT_BASE;
 const chatGptKey = import.meta.env.VITE_CHATGPT_API_KEY;
 
 if (import.meta.env.DEV) {
-  if (!arkBase)
-    console.warn("VITE_ARK_BASE is not configured. API calls will fail.");
-  if (!arkApiKey)
-    console.warn("VITE_ARK_API_KEY is not configured. API calls will fail.");
   if (!chatGptBase)
     console.warn(
       "VITE_CHATGPT_BASE is not configured. Prompt enhancement will fail."
@@ -195,7 +189,7 @@ export async function requestSeedreamImages(
       payload.sequential_image_generation ?? "disabled",
     sequential_image_generation_options:
       payload.sequential_image_generation_options,
-    steps: payload.steps, // 필요시만 전달
+    steps: payload.steps, // 필요 시만 전달
   };
 
   // width/height 또는 size 중 하나만 사용 (동시 전송 금지)
@@ -212,18 +206,15 @@ export async function requestSeedreamImages(
     body.image = imageField;
   }
 
-  const response = await fetchWithRetry(
-    `${arkBase.replace(/\/+$/, "")}/api/v3/images/generations`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${arkApiKey}`,
-      },
-      body: JSON.stringify(body),
-      signal,
-    }
-  );
+  // ✅ 항상 same-origin 프록시만 호출 (브라우저에서 Ark 직통 호출 금지 → CORS/키 노출 방지)
+  const response = await fetchWithRetry("/api/generate-image", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json", // Authorization 헤더 절대 넣지 않음
+    },
+    body: JSON.stringify(body),
+    signal,
+  });
 
   if (!response.ok) {
     const message = await extractErrorMessage(response);

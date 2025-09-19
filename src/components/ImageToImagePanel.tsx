@@ -211,6 +211,8 @@ export function ImageToImagePanel() {
       width: dimensions.width,
       height: dimensions.height,
       aspect_ratio: aspectRatio,
+      size: `${dimensions.width}x${dimensions.height}`,
+      watermark: false,
       image: sourceImage.dataUrl,
       references: referenceImages.map((item) => item.dataUrl),
     };

@@ -122,6 +122,8 @@ export function TextToImagePanel() {
       width: dimensions.width,
       height: dimensions.height,
       aspect_ratio: aspectRatio,
+      size: `${dimensions.width}x${dimensions.height}`,
+      watermark: false,
     };
     void runGeneration(payload);
   }, [aspectRatio, dimensions.height, dimensions.width, enhancedPrompt, rawPrompt, runGeneration]);

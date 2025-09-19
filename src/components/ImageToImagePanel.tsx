@@ -88,7 +88,7 @@ export function ImageToImagePanel() {
       if ((error as DOMException).name === 'AbortError') {
         return;
       }
-      setEnhancementError((error as Error).message ?? 'Failed to enhance prompt.');
+      setEnhancementError((error as Error).message ?? '프롬프트 강화에 실패했습니다.');
     } finally {
       setEnhancing(false);
     }
@@ -206,7 +206,7 @@ export function ImageToImagePanel() {
         if ((error as DOMException).name === 'AbortError') {
           return;
         }
-        setGenerateError((error as Error).message ?? 'Failed to generate images.');
+        setGenerateError((error as Error).message ?? '이미지 생성에 실패했습니다.');
       } finally {
         setIsGenerating(false);
       }
@@ -217,11 +217,11 @@ export function ImageToImagePanel() {
   const handleGenerate = useCallback(() => {
     const prompt = (enhancedPrompt || rawPrompt).trim();
     if (!prompt) {
-      setGenerateError('Please provide a prompt.');
+      setGenerateError('프롬프트를 입력해주세요.');
       return;
     }
     if (!sourceImage) {
-      setGenerateError('Please upload a source image.');
+      setGenerateError('원본 이미지를 업로드해주세요.');
       return;
     }
     const payload: SeedreamImageToImageRequest = {
@@ -249,27 +249,27 @@ export function ImageToImagePanel() {
   }, [handleGenerate, lastRequest, runGeneration]);
 
   return (
-    <div className="space-y-6">
-      <PromptBox
-        mode="i2i"
-        rawPrompt={rawPrompt}
-        enhancedPrompt={enhancedPrompt}
-        onRawChange={setRawPrompt}
-        onEnhancedChange={setEnhancedPrompt}
-        onEnhance={handleEnhance}
-        enhancing={enhancing}
-        enhancementError={enhancementError}
-      />
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
+      <div className="space-y-6">
+        <PromptBox
+          mode="i2i"
+          rawPrompt={rawPrompt}
+          enhancedPrompt={enhancedPrompt}
+          onRawChange={setRawPrompt}
+          onEnhancedChange={setEnhancedPrompt}
+          onEnhance={handleEnhance}
+          enhancing={enhancing}
+          enhancementError={enhancementError}
+        />
 
-      <section className="grid gap-6 rounded-xl border border-border bg-surface/80 p-4 transition-colors lg:grid-cols-2">
-        <div className="space-y-4">
+        <section className="space-y-5 rounded-xl border border-border bg-surface/80 p-4 transition-colors">
           <div>
-            <label className="text-sm font-semibold text-muted">Source image</label>
-            <p className="text-xs text-muted">JPEG or PNG, up to 10MB. Aspect ratio must be between 1:3 and 3:1.</p>
+            <h3 className="text-sm font-semibold text-text">원본 이미지</h3>
+            <p className="text-xs text-muted">JPEG 또는 PNG, 최대 10MB. 가로:세로 비율은 1:3~3:1 범위를 권장합니다.</p>
             <div className="mt-2 rounded-lg border border-dashed border-border p-4">
               {sourceImage ? (
                 <div className="space-y-2 text-sm">
-                  <img src={sourceImage.dataUrl} alt="Source" className="max-h-48 w-full rounded-md object-contain" />
+                  <img src={sourceImage.dataUrl} alt="원본 이미지" className="max-h-48 w-full rounded-md object-contain" />
                   <div className="flex items-center justify-between text-xs text-muted">
                     <span>{sourceImage.name}</span>
                     <span>
@@ -281,12 +281,12 @@ export function ImageToImagePanel() {
                     className="rounded-md border border-border px-3 py-1 text-xs transition hover:bg-surface/70"
                     onClick={() => setSourceImage(null)}
                   >
-                    Replace image
+                    이미지 교체
                   </button>
                 </div>
               ) : (
                 <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-border p-6 text-center text-sm text-muted transition hover:border-primary/70">
-                  <span>Select an image</span>
+                  <span>이미지 선택</span>
                   <input
                     type="file"
                     accept="image/png,image/jpeg"
@@ -302,12 +302,13 @@ export function ImageToImagePanel() {
               )}
             </div>
           </div>
+
           <div>
-            <label className="text-sm font-semibold text-muted">Reference images (optional)</label>
-            <p className="text-xs text-muted">Add up to {REFERENCE_LIMIT} images to guide the style.</p>
+            <h3 className="text-sm font-semibold text-text">레퍼런스 이미지 (선택)</h3>
+            <p className="text-xs text-muted">스타일 가이드를 위해 최대 {REFERENCE_LIMIT}장까지 업로드할 수 있습니다.</p>
             <div className="mt-2 space-y-3">
               <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border p-4 text-center text-sm text-muted transition hover:border-primary/70">
-                <span>Add reference images</span>
+                <span>레퍼런스 이미지 추가</span>
                 <input
                   type="file"
                   accept="image/png,image/jpeg"
@@ -325,7 +326,7 @@ export function ImageToImagePanel() {
                 <ul className="grid gap-3 sm:grid-cols-2">
                   {referenceImages.map((item, index) => (
                     <li key={item.id} className="rounded-lg border border-border bg-background p-2 transition-colors">
-                      <img src={item.dataUrl} alt={`Reference ${index + 1}`} className="h-32 w-full rounded-md object-cover" />
+                      <img src={item.dataUrl} alt={`레퍼런스 ${index + 1}`} className="h-32 w-full rounded-md object-cover" />
                       <div className="mt-2 flex items-center justify-between text-xs text-muted">
                         <span>{item.width}×{item.height}</span>
                         <span>{(item.size / 1024).toFixed(0)} KB</span>
@@ -338,7 +339,7 @@ export function ImageToImagePanel() {
                             onClick={() => moveReference(item.id, -1)}
                             disabled={index === 0}
                           >
-                            Up
+                            위로
                           </button>
                           <button
                             type="button"
@@ -346,7 +347,7 @@ export function ImageToImagePanel() {
                             onClick={() => moveReference(item.id, 1)}
                             disabled={index === referenceImages.length - 1}
                           >
-                            Down
+                            아래로
                           </button>
                         </div>
                         <button
@@ -354,7 +355,7 @@ export function ImageToImagePanel() {
                           className="rounded border border-border px-2 py-1 text-red-500 transition hover:bg-surface/70 hover:text-red-400"
                           onClick={() => removeReference(item.id)}
                         >
-                          Remove
+                          삭제
                         </button>
                       </div>
                     </li>
@@ -363,31 +364,34 @@ export function ImageToImagePanel() {
               )}
             </div>
           </div>
-        </div>
-        <div className="space-y-4">
-          <AspectSelector value={aspectRatio} onChange={setAspectRatio} />
-          <ResolutionSelector value={resolution} onChange={setResolution} />
-          <div>
-            <h3 className="text-sm font-semibold">Dimensions</h3>
-            <p className="text-sm text-muted">
-              Output size will be approximately {dimensions.width} × {dimensions.height} pixels.
-            </p>
+
+          {uploadError && <p className="text-sm text-red-600 dark:text-red-400">{uploadError}</p>}
+        </section>
+
+        <section className="space-y-5 rounded-xl border border-border bg-surface/80 p-4 transition-colors">
+          <div className="grid gap-4 lg:grid-cols-2">
+            <AspectSelector value={aspectRatio} onChange={setAspectRatio} />
+            <ResolutionSelector value={resolution} onChange={setResolution} />
+          </div>
+          <div className="rounded-lg border border-dashed border-border p-3 text-sm text-muted">
+            <span className="font-medium text-text">예상 해상도</span>
+            <p className="mt-1">출력 결과는 약 {dimensions.width} × {dimensions.height} 픽셀로 생성됩니다.</p>
           </div>
           <fieldset className="space-y-3 rounded-lg border border-border p-3">
-            <legend className="px-2 text-sm font-semibold">Advanced parameters</legend>
+            <legend className="px-2 text-sm font-semibold">고급 파라미터</legend>
             <div className="grid gap-3 sm:grid-cols-3">
               <label className="flex flex-col gap-1 text-sm">
-                Seed
+                시드
                 <input
                   type="number"
                   value={seed ?? ''}
                   onChange={(event) => setSeed(event.target.value ? Number(event.target.value) : undefined)}
                   className="rounded-md border border-border bg-background p-2"
-                  placeholder="Random"
+                  placeholder="무작위"
                 />
               </label>
               <label className="flex flex-col gap-1 text-sm">
-                Steps
+                스텝
                 <input
                   type="number"
                   value={steps}
@@ -398,7 +402,7 @@ export function ImageToImagePanel() {
                 />
               </label>
               <label className="flex flex-col gap-1 text-sm">
-                Guidance
+                가이던스
                 <input
                   type="number"
                   value={guidance}
@@ -412,7 +416,7 @@ export function ImageToImagePanel() {
             </div>
           </fieldset>
           <fieldset className="space-y-2 rounded-lg border border-border p-3 text-sm">
-            <legend className="px-2 text-sm font-semibold">Generation options</legend>
+            <legend className="px-2 text-sm font-semibold">생성 옵션</legend>
             <label className="flex items-center gap-2">
               <input
                 type="checkbox"
@@ -420,11 +424,11 @@ export function ImageToImagePanel() {
                 onChange={(event) => setWatermark(event.target.checked)}
                 className="h-4 w-4"
               />
-              Add watermark
+              워터마크 추가
             </label>
             <label className="flex items-center gap-2">
               <input type="checkbox" checked={stream} onChange={(event) => setStream(event.target.checked)} className="h-4 w-4" />
-              Stream (beta)
+              스트리밍(베타)
             </label>
             <label className="flex items-center gap-2">
               <input
@@ -433,27 +437,31 @@ export function ImageToImagePanel() {
                 onChange={(event) => setSequential(event.target.checked ? 'enabled' : 'disabled')}
                 className="h-4 w-4"
               />
-              Enable sequential image generation
+              연속 이미지 생성 활성화
             </label>
           </fieldset>
-        </div>
-      </section>
 
-      {uploadError && <p className="text-sm text-red-600 dark:text-red-400">{uploadError}</p>}
-
-      <div className="flex flex-wrap items-center gap-3">
-        <button
-          type="button"
-          onClick={handleGenerate}
-          className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/80 disabled:cursor-not-allowed disabled:bg-muted/40"
-          disabled={isGenerating}
-        >
-          {isGenerating ? 'Generating…' : 'Generate variations'}
-        </button>
-        {generateError && <span className="text-sm text-red-600 dark:text-red-400">{generateError}</span>}
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={handleGenerate}
+              className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/80 disabled:cursor-not-allowed disabled:bg-muted/40"
+              disabled={isGenerating}
+            >
+              {isGenerating ? '생성 중…' : '이미지 변주 생성하기'}
+            </button>
+            {generateError && <span className="text-sm text-red-600 dark:text-red-400">{generateError}</span>}
+          </div>
+        </section>
       </div>
 
-      <PreviewGrid images={images} loading={isGenerating} error={generateError} onRegenerate={handleRegenerate} />
+      <PreviewGrid
+        images={images}
+        loading={isGenerating}
+        error={generateError}
+        onRegenerate={handleRegenerate}
+        className="mt-0"
+      />
     </div>
   );
 }

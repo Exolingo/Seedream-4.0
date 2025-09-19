@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { formatDistanceToNow } from 'date-fns';
+import { ko } from 'date-fns/locale';
 import { useHistoryStore } from './historyStore';
 import type { HistoryItem } from '../../types/history';
 
@@ -51,12 +52,12 @@ export function HistoryDrawer({ open, onClose, onSelect }: HistoryDrawerProps) {
       <aside
         role="dialog"
         aria-modal="true"
-        aria-label="History"
+        aria-label="히스토리"
         className={`absolute right-0 top-0 h-full w-full max-w-md transform bg-surface shadow-xl transition-transform duration-300 ${open ? 'translate-x-0' : 'translate-x-full'}`}
       >
         <div className="flex h-full flex-col">
           <header className="flex items-center justify-between border-b border-border px-6 py-4">
-            <h2 className="text-lg font-semibold">History</h2>
+            <h2 className="text-lg font-semibold">히스토리</h2>
             <div className="flex items-center gap-2">
               {sorted.length > 0 && (
                 <button
@@ -64,7 +65,7 @@ export function HistoryDrawer({ open, onClose, onSelect }: HistoryDrawerProps) {
                   className="rounded-md border border-border px-3 py-1 text-sm transition hover:bg-surface/70"
                   onClick={clear}
                 >
-                  Clear all
+                  전체 삭제
                 </button>
               )}
               <button
@@ -73,13 +74,13 @@ export function HistoryDrawer({ open, onClose, onSelect }: HistoryDrawerProps) {
                 className="rounded-md border border-border px-3 py-1 text-sm transition hover:bg-surface/70"
                 onClick={onClose}
               >
-                Close
+                닫기
               </button>
             </div>
           </header>
           <div className="flex-1 overflow-y-auto px-6 py-4">
             {sorted.length === 0 ? (
-              <p className="text-sm text-muted">No history yet. Generate an image to see it here.</p>
+              <p className="text-sm text-muted">아직 저장된 히스토리가 없습니다. 이미지를 생성하면 자동으로 기록됩니다.</p>
             ) : (
               <ul className="space-y-4">
                 {sorted.map((item) => (
@@ -87,32 +88,24 @@ export function HistoryDrawer({ open, onClose, onSelect }: HistoryDrawerProps) {
                     <div className="flex items-start justify-between gap-4">
                       <div>
                         <p className="text-xs uppercase tracking-wide text-muted">
-                          {item.source === 't2i' ? 'Text to Image' : 'Image to Image'} ·{' '}
-                          {formatDistanceToNow(item.createdAt, { addSuffix: true })}
+                          {item.source === 't2i' ? '텍스트 → 이미지' : '이미지 → 이미지'} · {formatDistanceToNow(item.createdAt, { addSuffix: true, locale: ko })}
                         </p>
-                        <p className="mt-2 max-h-20 overflow-hidden text-sm text-text">
-                          {item.promptEnhanced ?? item.promptRaw}
-                        </p>
+                        <p className="mt-2 max-h-20 overflow-hidden text-sm text-text">{item.promptEnhanced ?? item.promptRaw}</p>
                         <p className="mt-2 text-xs text-muted">
-                          {item.params.aspectRatio} · {item.params.resolution} · {item.params.width}×
-                          {item.params.height}
+                          {item.params.aspectRatio} · {item.params.resolution} · {item.params.width}×{item.params.height}
                         </p>
                       </div>
                       <button
                         type="button"
                         className="text-xs text-muted transition hover:text-red-500"
                         onClick={() => removeItem(item.id)}
-                        aria-label="Remove from history"
+                        aria-label="히스토리에서 삭제"
                       >
-                        Delete
+                        삭제
                       </button>
                     </div>
                     {item.thumb && (
-                      <img
-                        src={item.thumb}
-                        alt="History thumbnail"
-                        className="mt-3 h-32 w-full rounded-md object-cover"
-                      />
+                      <img src={item.thumb} alt="히스토리 썸네일" className="mt-3 h-32 w-full rounded-md object-cover" />
                     )}
                     <div className="mt-4 flex flex-wrap gap-2">
                       <button
@@ -120,7 +113,7 @@ export function HistoryDrawer({ open, onClose, onSelect }: HistoryDrawerProps) {
                         className="rounded-md bg-primary px-3 py-1 text-xs font-medium text-primary-foreground transition hover:bg-primary/80"
                         onClick={() => onSelect(item)}
                       >
-                        Load settings
+                        설정 불러오기
                       </button>
                       {item.url && (
                         <a
@@ -129,7 +122,7 @@ export function HistoryDrawer({ open, onClose, onSelect }: HistoryDrawerProps) {
                           target="_blank"
                           rel="noreferrer"
                         >
-                          Open image
+                          원본 열기
                         </a>
                       )}
                     </div>

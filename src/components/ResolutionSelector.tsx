@@ -8,7 +8,7 @@ interface ResolutionSelectorProps {
 export function ResolutionSelector({ value, onChange }: ResolutionSelectorProps) {
   return (
     <div>
-      <label className="mb-2 block text-sm font-medium text-muted">Resolution preset</label>
+      <label className="mb-2 block text-sm font-medium text-muted">해상도 프리셋</label>
       <div className="flex gap-2">
         {RESOLUTION_OPTIONS.map((option) => {
           const isActive = option === value;

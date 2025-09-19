@@ -78,7 +78,7 @@ export function TextToImagePanel() {
       if ((error as DOMException).name === 'AbortError') {
         return;
       }
-      setEnhancementError((error as Error).message ?? 'Failed to enhance prompt.');
+      setEnhancementError((error as Error).message ?? '프롬프트 강화에 실패했습니다.');
     } finally {
       setEnhancing(false);
     }
@@ -122,7 +122,7 @@ export function TextToImagePanel() {
         if ((error as DOMException).name === 'AbortError') {
           return;
         }
-        setGenerateError((error as Error).message ?? 'Failed to generate images.');
+        setGenerateError((error as Error).message ?? '이미지 생성에 실패했습니다.');
       } finally {
         setIsGenerating(false);
       }
@@ -133,7 +133,7 @@ export function TextToImagePanel() {
   const handleGenerate = useCallback(() => {
     const prompt = (enhancedPrompt || rawPrompt).trim();
     if (!prompt) {
-      setGenerateError('Please provide a prompt.');
+      setGenerateError('프롬프트를 입력해주세요.');
       return;
     }
     const payload: SeedreamTextToImageRequest = {
@@ -159,45 +159,43 @@ export function TextToImagePanel() {
   }, [handleGenerate, lastRequest, runGeneration]);
 
   return (
-    <div className="space-y-6">
-      <PromptBox
-        mode="t2i"
-        rawPrompt={rawPrompt}
-        enhancedPrompt={enhancedPrompt}
-        onRawChange={setRawPrompt}
-        onEnhancedChange={setEnhancedPrompt}
-        onEnhance={handleEnhance}
-        enhancing={enhancing}
-        enhancementError={enhancementError}
-      />
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
+      <div className="space-y-6">
+        <PromptBox
+          mode="t2i"
+          rawPrompt={rawPrompt}
+          enhancedPrompt={enhancedPrompt}
+          onRawChange={setRawPrompt}
+          onEnhancedChange={setEnhancedPrompt}
+          onEnhance={handleEnhance}
+          enhancing={enhancing}
+          enhancementError={enhancementError}
+        />
 
-      <section className="grid gap-6 rounded-xl border border-border bg-surface/80 p-4 transition-colors lg:grid-cols-2">
-        <div className="space-y-4">
-          <AspectSelector value={aspectRatio} onChange={setAspectRatio} />
-          <ResolutionSelector value={resolution} onChange={setResolution} />
-          <div>
-            <h3 className="text-sm font-semibold">Dimensions</h3>
-            <p className="text-sm text-muted">
-              Output size will be approximately {dimensions.width} × {dimensions.height} pixels.
-            </p>
+        <section className="space-y-5 rounded-xl border border-border bg-surface/80 p-4 transition-colors">
+          <div className="grid gap-4 lg:grid-cols-2">
+            <AspectSelector value={aspectRatio} onChange={setAspectRatio} />
+            <ResolutionSelector value={resolution} onChange={setResolution} />
           </div>
-        </div>
-        <div className="space-y-4">
+          <div className="rounded-lg border border-dashed border-border p-3 text-sm text-muted">
+            <span className="font-medium text-text">예상 해상도</span>
+            <p className="mt-1">출력 결과는 약 {dimensions.width} × {dimensions.height} 픽셀로 생성됩니다.</p>
+          </div>
           <fieldset className="space-y-3 rounded-lg border border-border p-3">
-            <legend className="px-2 text-sm font-semibold">Advanced parameters</legend>
+            <legend className="px-2 text-sm font-semibold">고급 파라미터</legend>
             <div className="grid gap-3 sm:grid-cols-3">
               <label className="flex flex-col gap-1 text-sm">
-                Seed
+                시드
                 <input
                   type="number"
                   value={seed ?? ''}
                   onChange={(event) => setSeed(event.target.value ? Number(event.target.value) : undefined)}
                   className="rounded-md border border-border bg-background p-2"
-                  placeholder="Random"
+                  placeholder="무작위"
                 />
               </label>
               <label className="flex flex-col gap-1 text-sm">
-                Steps
+                스텝
                 <input
                   type="number"
                   value={steps}
@@ -208,7 +206,7 @@ export function TextToImagePanel() {
                 />
               </label>
               <label className="flex flex-col gap-1 text-sm">
-                Guidance
+                가이던스
                 <input
                   type="number"
                   value={guidance}
@@ -222,7 +220,7 @@ export function TextToImagePanel() {
             </div>
           </fieldset>
           <fieldset className="space-y-2 rounded-lg border border-border p-3 text-sm">
-            <legend className="px-2 text-sm font-semibold">Generation options</legend>
+            <legend className="px-2 text-sm font-semibold">생성 옵션</legend>
             <label className="flex items-center gap-2">
               <input
                 type="checkbox"
@@ -230,11 +228,11 @@ export function TextToImagePanel() {
                 onChange={(event) => setWatermark(event.target.checked)}
                 className="h-4 w-4"
               />
-              Add watermark
+              워터마크 추가
             </label>
             <label className="flex items-center gap-2">
               <input type="checkbox" checked={stream} onChange={(event) => setStream(event.target.checked)} className="h-4 w-4" />
-              Stream (beta)
+              스트리밍(베타)
             </label>
             <label className="flex items-center gap-2">
               <input
@@ -243,25 +241,31 @@ export function TextToImagePanel() {
                 onChange={(event) => setSequential(event.target.checked ? 'enabled' : 'disabled')}
                 className="h-4 w-4"
               />
-              Enable sequential image generation
+              연속 이미지 생성 활성화
             </label>
           </fieldset>
-        </div>
-      </section>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <button
-          type="button"
-          onClick={handleGenerate}
-          className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/80 disabled:cursor-not-allowed disabled:bg-muted/40"
-          disabled={isGenerating}
-        >
-          {isGenerating ? 'Generating…' : 'Generate image'}
-        </button>
-        {generateError && <span className="text-sm text-red-600 dark:text-red-400">{generateError}</span>}
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={handleGenerate}
+              className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/80 disabled:cursor-not-allowed disabled:bg-muted/40"
+              disabled={isGenerating}
+            >
+              {isGenerating ? '생성 중…' : '이미지 생성하기'}
+            </button>
+            {generateError && <span className="text-sm text-red-600 dark:text-red-400">{generateError}</span>}
+          </div>
+        </section>
       </div>
 
-      <PreviewGrid images={images} loading={isGenerating} error={generateError} onRegenerate={handleRegenerate} />
+      <PreviewGrid
+        images={images}
+        loading={isGenerating}
+        error={generateError}
+        onRegenerate={handleRegenerate}
+        className="mt-0"
+      />
     </div>
   );
 }

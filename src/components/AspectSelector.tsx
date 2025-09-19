@@ -8,7 +8,7 @@ interface AspectSelectorProps {
 export function AspectSelector({ value, onChange }: AspectSelectorProps) {
   return (
     <div>
-      <label className="mb-2 block text-sm font-medium text-muted">Aspect ratio</label>
+      <label className="mb-2 block text-sm font-medium text-muted">화면 비율</label>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
         {ASPECT_RATIO_OPTIONS.map((option) => {
           const isActive = option === value;

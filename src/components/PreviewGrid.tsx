@@ -6,9 +6,10 @@ interface PreviewGridProps {
   loading: boolean;
   error?: string;
   onRegenerate?: () => void;
+  className?: string;
 }
 
-export function PreviewGrid({ images, loading, error, onRegenerate }: PreviewGridProps) {
+export function PreviewGrid({ images, loading, error, onRegenerate, className = 'mt-6' }: PreviewGridProps) {
   const [selected, setSelected] = useState<GeneratedImage | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -32,9 +33,9 @@ export function PreviewGrid({ images, loading, error, onRegenerate }: PreviewGri
   }, [selected]);
 
   return (
-    <section className="mt-6 rounded-xl border border-border bg-surface/80 p-4 transition-colors">
+    <section className={`rounded-xl border border-border bg-surface/80 p-4 transition-colors ${className}`}>
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-lg font-semibold">Preview</h2>
+        <h2 className="text-lg font-semibold">결과 미리보기</h2>
         {onRegenerate && (
           <button
             type="button"
@@ -42,7 +43,7 @@ export function PreviewGrid({ images, loading, error, onRegenerate }: PreviewGri
             onClick={onRegenerate}
             disabled={loading}
           >
-            Regenerate
+            동일 조건 재생성
           </button>
         )}
       </div>
@@ -56,7 +57,7 @@ export function PreviewGrid({ images, loading, error, onRegenerate }: PreviewGri
           ))}
         </div>
       ) : images.length === 0 ? (
-        <p className="mt-4 text-sm text-muted">No images yet. Generate something to preview it here.</p>
+        <p className="mt-4 text-sm text-muted">아직 생성된 이미지가 없습니다. 왼쪽에서 설정을 선택하고 이미지를 만들어보세요.</p>
       ) : (
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {images.map((image, index) => (
@@ -66,7 +67,7 @@ export function PreviewGrid({ images, loading, error, onRegenerate }: PreviewGri
               className="group relative overflow-hidden rounded-lg border border-border transition hover:border-primary/60"
               onClick={() => setSelected(image)}
             >
-              <img src={image.url} alt="Generated" className="h-48 w-full object-cover transition group-hover:scale-105" />
+              <img src={image.url} alt="생성된 이미지" className="h-48 w-full object-cover transition group-hover:scale-105" />
               <div className="absolute bottom-0 left-0 right-0 bg-black/60 p-2 text-xs text-primary-foreground">
                 {image.size}
               </div>
@@ -84,9 +85,9 @@ export function PreviewGrid({ images, loading, error, onRegenerate }: PreviewGri
               className="absolute right-4 top-4 rounded-md border border-border bg-surface/80 px-3 py-1 text-sm transition hover:bg-surface"
               onClick={() => setSelected(null)}
             >
-              Close
+              닫기
             </button>
-            <img src={selected.url} alt="Preview" className="max-h-[70vh] w-full rounded-lg object-contain" />
+            <img src={selected.url} alt="미리보기" className="max-h-[70vh] w-full rounded-lg object-contain" />
             <div className="mt-3 flex items-center justify-between text-sm text-muted">
               <span>{selected.size}</span>
               <a
@@ -95,7 +96,7 @@ export function PreviewGrid({ images, loading, error, onRegenerate }: PreviewGri
                 rel="noreferrer"
                 className="rounded-md border border-border px-3 py-1 transition hover:bg-surface"
               >
-                Open in new tab
+                새 탭에서 열기
               </a>
             </div>
           </div>

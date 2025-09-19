@@ -184,17 +184,18 @@ export async function enhancePrompt(
     throw new Error('ChatGPT API is not configured.');
   }
 
+  const modeLabel = payload.mode === 't2i' ? 'text-to-image' : 'image-to-image';
   const body = {
     model: 'gpt-4o-mini',
     messages: [
       {
         role: 'system',
         content:
-          'You are a creative prompt engineer enhancing prompts for Seedream 4.0 image generation. The output must be under 500 characters and safe for work.',
+          '당신은 BytePlus ModelArk의 Seedream 4.0 모델을 위한 시니어 프롬프트 엔지니어입니다. 장면의 주제, 스타일, 구도, 카메라/렌즈, 조명, 분위기, 품질 키워드를 포함해 모델이 선호하는 표현으로 500자 이내의 단일 프롬프트를 작성하세요. 안전 가이드를 준수하고 민감한 내용은 배제하며, 최종 출력만 제공하세요. 기본 응답은 한국어로 작성하되 필요한 핵심 키워드는 영어를 병기할 수 있습니다.',
       },
       {
         role: 'user',
-        content: `Mode: ${payload.mode}. Prompt: ${payload.prompt}`,
+        content: `작업 모드: ${modeLabel}. 원본 프롬프트:\n${payload.prompt}\n\n위 지침에 따라 Seedream 4.0에 최적화된 프롬프트를 만들어주세요.`,
       },
     ],
     max_output_tokens: payload.maxTokens ?? 400,

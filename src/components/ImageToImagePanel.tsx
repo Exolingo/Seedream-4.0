@@ -1,25 +1,9 @@
-<<<<<<< HEAD
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useHistoryStore } from '../features/history/historyStore';
-import { enhancePrompt, requestImageGeneration, type SeedreamImageToImageRequest } from '../lib/api';
-import { createId } from '../lib/id';
-import { prepareImageAsset } from '../lib/images';
-import { computeDimensions } from '../lib/imageSizing';
-import { useAppStore } from '../store/appStore';
-import type { AspectRatio, HistoryItem, HistoryParams, ResolutionPreset } from '../types/history';
-import type { ImageAsset, ImageValidationError } from '../types/images';
-import { AspectSelector } from './AspectSelector';
-import { ModelSelector } from './ModelSelector';
-import { PreviewGrid } from './PreviewGrid';
-import { PromptBox } from './PromptBox';
-import { ResolutionSelector } from './ResolutionSelector';
-=======
-import { upload as uploadToBlob } from "@vercel/blob/client"; // ✅ Blob 클라 SDK
+import { upload as uploadToBlob } from "@vercel/blob/client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useHistoryStore } from "../features/history/historyStore";
 import {
   enhancePrompt,
-  requestSeedreamImages,
+  requestImageGeneration,
   type SeedreamImageToImageRequest,
 } from "../lib/api";
 import { createId } from "../lib/id";
@@ -34,10 +18,10 @@ import type {
 } from "../types/history";
 import type { ImageAsset, ImageValidationError } from "../types/images";
 import { AspectSelector } from "./AspectSelector";
+import { ModelSelector } from "./ModelSelector";
 import { PreviewGrid } from "./PreviewGrid";
 import { PromptBox } from "./PromptBox";
 import { ResolutionSelector } from "./ResolutionSelector";
->>>>>>> 1869b78d6da91411233f5cf5c2954073b9a8aa3c
 
 const REFERENCE_LIMIT = 8;
 
@@ -223,14 +207,10 @@ export function ImageToImagePanel() {
       setIsGenerating(true);
       setGenerateError(undefined);
       try {
-<<<<<<< HEAD
-        const response = await requestImageGeneration(payload, controller.signal);
-=======
-        const response = await requestSeedreamImages(
+        const response = await requestImageGeneration(
           payload,
           controller.signal
         );
->>>>>>> 1869b78d6da91411233f5cf5c2954073b9a8aa3c
         setImages(response.data);
         setLastRequest(payload);
         const historyParams: HistoryParams = {
@@ -304,10 +284,7 @@ export function ImageToImagePanel() {
     dimensions.height,
     dimensions.width,
     enhancedPrompt,
-<<<<<<< HEAD
     model,
-=======
->>>>>>> 1869b78d6da91411233f5cf5c2954073b9a8aa3c
     rawPrompt,
     referenceImages,
     runGeneration,

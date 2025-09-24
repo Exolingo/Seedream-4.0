@@ -1,12 +1,13 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
-const ARK_BASE = "https://ark.ap-southeast.bytepluses.com";
+
 
 type AnyBody = {
   size?: string; // "WxH" (예: "1280x720")
   width?: number; // 클라 기록용: 서버에서 제거
   height?: number; // 클라 기록용: 서버에서 제거
   aspect_ratio?: string; // 클라 기록용: 서버에서 제거
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [k: string]: any;
 };
 
@@ -35,12 +36,10 @@ function normalizeForArk(input: AnyBody): AnyBody {
   }
 
   // 3) 최종 바디: Ark에는 size만 전달 (메서드 혼용 금지)
-  const {
-    width, // 제거
-    height, // 제거
-    aspect_ratio, // 제거
-    ...rest
-  } = body;
+  const rest = { ...body };
+  delete rest.width;
+  delete rest.height;
+  delete rest.aspect_ratio;
 
   return {
     ...rest,
@@ -54,30 +53,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: { message: "Method Not Allowed" } });
   }
 
-  const ARK_API_KEY = process.env.ARK_API_KEY;
-  if (!ARK_API_KEY) {
-    return res
-      .status(500)
-      .json({ error: { message: "ARK_API_KEY is not configured." } });
-  }
-
   try {
-<<<<<<< HEAD
     const { model, ...body } = req.body;
 
     let apiKey: string | undefined;
     let apiBase: string;
+    let finalBody: AnyBody = body;
 
     if (model === 'nano-banana') {
-      apiKey = process.env.VITE_NANO_API_KEY;
-      apiBase = process.env.VITE_NANO_BASE || 'https://api.nanobanana.dev/v1/images/generations';
+      apiKey = process.env.NANO_API_KEY;
+      apiBase = process.env.NANO_BASE || 'https://api.nanobanana.dev/v1/images/generations';
     } else {
-      apiKey = process.env.VITE_ARK_API_KEY;
-      apiBase = process.env.VITE_ARK_BASE || 'https://ark.ap-southeast.bytepluses.com/api/v3/images/generations';
+      // This is the ARK path
+      apiKey = process.env.ARK_API_KEY;
+      apiBase = process.env.ARK_BASE || 'https://ark.ap-southeast.bytepluses.com/api/v3/images/generations';
+      finalBody = normalizeForArk(body); // Use the normalization function here
     }
 
-    if (!apiKey) return res.status(500).json({ error: 'API_KEY is missing for the selected model' });
-    if (apiKey.toLowerCase().startsWith('bearer ')) apiKey = apiKey.slice(7).trim();
+    if (!apiKey) {
+      return res.status(500).json({ error: 'API_KEY is missing for the selected model' });
+    }
+    
+    if (apiKey.toLowerCase().startsWith('bearer ')) {
+      apiKey = apiKey.slice(7).trim();
+    }
 
     const upstream = await fetch(apiBase, {
       method: 'POST',
@@ -85,36 +84,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${apiKey}`,
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify(finalBody),
     });
 
     const ct = upstream.headers.get('content-type') || '';
     const responseBody = ct.includes('application/json') ? await upstream.json() : await upstream.text();
     return res.status(upstream.status).send(responseBody);
-  } catch (e: any) {
-    return res.status(500).json({ error: 'Proxy failed', detail: String(e) });
-=======
-    const incoming = (req.body ?? {}) as AnyBody;
-    const normalized = normalizeForArk(incoming);
-
-    const arkRes = await fetch(`${ARK_BASE}/api/v3/images/generations`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${ARK_API_KEY}`,
-      },
-      body: JSON.stringify(normalized),
-    });
-
-    const text = await arkRes.text(); // Ark 응답을 그대로 중계
-    res.status(arkRes.status);
-    res.setHeader("Content-Type", "application/json");
-    res.setHeader("Cache-Control", "no-store");
-    return res.send(text);
-  } catch (err) {
-    return res
-      .status(502)
-      .json({ error: { message: `Proxy error: ${(err as Error).message}` } });
->>>>>>> 1869b78d6da91411233f5cf5c2954073b9a8aa3c
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : String(e);
+    return res.status(500).json({ error: 'Proxy failed', detail: message });
   }
 }

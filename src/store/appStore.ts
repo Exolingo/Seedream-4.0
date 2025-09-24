@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { HistoryItem } from '../types/history';
+import type { ImageModel } from '../types/images';
 
 export type EditorTab = 't2i' | 'i2i';
 
@@ -41,12 +42,14 @@ interface AppState {
   historyOpen: boolean;
   pendingHistory: HistoryItem | null;
   theme: ThemePreference;
+  model: ImageModel;
   setActiveTab: (tab: EditorTab) => void;
   toggleHistory: () => void;
   setHistoryOpen: (open: boolean) => void;
   setPendingHistory: (item: HistoryItem | null) => void;
   setTheme: (theme: ThemePreference) => void;
   toggleTheme: () => void;
+  setModel: (model: ImageModel) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -54,6 +57,7 @@ export const useAppStore = create<AppState>((set) => ({
   historyOpen: false,
   pendingHistory: null,
   theme: resolveInitialTheme(),
+  model: 'seedream',
   setActiveTab: (tab) => set({ activeTab: tab }),
   toggleHistory: () => set((state) => ({ historyOpen: !state.historyOpen })),
   setHistoryOpen: (open) => set({ historyOpen: open }),
@@ -68,4 +72,5 @@ export const useAppStore = create<AppState>((set) => ({
       persistTheme(nextTheme);
       return { theme: nextTheme };
     }),
+  setModel: (model) => set({ model }),
 }));

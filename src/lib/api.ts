@@ -1,7 +1,8 @@
 import type { AspectRatio, GeneratedImage } from '../types/history';
+import type { ImageModel } from '../types/images';
 
 export interface SeedreamRequestBase {
-  model?: string;
+  model: ImageModel;
   prompt: string;
   response_format?: 'url' | 'b64_json';
   stream?: boolean;
@@ -48,17 +49,10 @@ export interface PromptEnhancementResponse {
   rationale?: string;
 }
 
-const DEFAULT_MODEL = 'seedream-4-0-250828';
-const DEFAULT_RESPONSE_FORMAT: SeedreamRequestBase['response_format'] = 'url';
-
-const arkBase = import.meta.env.VITE_ARK_BASE;       // 예: https://ark.ap-southeast.bytepluses.com
-const arkApiKey = import.meta.env.VITE_ARK_API_KEY;
 const chatGptBase = import.meta.env.VITE_CHATGPT_BASE;
 const chatGptKey = import.meta.env.VITE_CHATGPT_API_KEY;
 
 if (import.meta.env.DEV) {
-  if (!arkBase) console.warn('VITE_ARK_BASE is not configured. API calls will fail.');
-  if (!arkApiKey) console.warn('VITE_ARK_API_KEY is not configured. API calls will fail.');
   if (!chatGptBase) console.warn('VITE_CHATGPT_BASE is not configured. Prompt enhancement will fail.');
   if (!chatGptKey) console.warn('VITE_CHATGPT_API_KEY is not configured. Prompt enhancement will fail.');
 }
@@ -155,17 +149,13 @@ function buildImageField(
   return refs.length ? refs.slice(0, 10) : undefined;
 }
 
-export async function requestSeedreamImages(
+export async function requestImageGeneration(
   payload: SeedreamTextToImageRequest | SeedreamImageToImageRequest,
   signal?: AbortSignal,
 ): Promise<SeedreamResponse> {
-  if (!arkBase || !arkApiKey) {
-    throw new Error('Ark API is not configured.');
-  }
-
   // Seedream 4.0은 seed/guidance_scale 미지원 → 바디에서 제외
   const body: Record<string, unknown> = {
-    model: payload.model ?? DEFAULT_MODEL,
+    model: payload.model,
     prompt: payload.prompt,
     response_format: payload.response_format ?? DEFAULT_RESPONSE_FORMAT,
     aspect_ratio: payload.aspect_ratio,
@@ -190,18 +180,14 @@ export async function requestSeedreamImages(
     body.image = imageField;
   }
 
-  const response = await fetchWithRetry(
-    `${arkBase.replace(/\/+$/, '')}/api/v3/images/generations`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${arkApiKey}`,
-      },
-      body: JSON.stringify(body),
-      signal,
-    }
-  );
+  const response = await fetchWithRetry('/api/generate-image', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+    signal,
+  });
 
   if (!response.ok) {
     const message = await extractErrorMessage(response);

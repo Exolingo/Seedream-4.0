@@ -1,3 +1,5 @@
+export type ImageModel = 'seedream' | 'nano-banana';
+
 export interface ImageAsset {
   id: string;
   file: File;

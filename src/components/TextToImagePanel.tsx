@@ -4,17 +4,19 @@ import { ResolutionSelector } from './ResolutionSelector';
 import { PromptBox } from './PromptBox';
 import { PreviewGrid } from './PreviewGrid';
 import { computeDimensions } from '../lib/imageSizing';
-import { enhancePrompt, requestSeedreamImages, type SeedreamTextToImageRequest } from '../lib/api';
+import { enhancePrompt, requestImageGeneration, type SeedreamTextToImageRequest } from '../lib/api';
 import { createId } from '../lib/id';
 import { useHistoryStore } from '../features/history/historyStore';
 import { useAppStore } from '../store/appStore';
 import type { AspectRatio, HistoryItem, HistoryParams, ResolutionPreset } from '../types/history';
+import { ModelSelector } from './ModelSelector';
 
 export function TextToImagePanel() {
   const addHistory = useHistoryStore((state) => state.addItem);
-  const { pendingHistory, setPendingHistory } = useAppStore((state) => ({
+  const { pendingHistory, setPendingHistory, model } = useAppStore((state) => ({
     pendingHistory: state.pendingHistory,
     setPendingHistory: state.setPendingHistory,
+    model: state.model,
   }));
 
   const [rawPrompt, setRawPrompt] = useState('');
@@ -79,7 +81,7 @@ export function TextToImagePanel() {
       setIsGenerating(true);
       setGenerateError(undefined);
       try {
-        const response = await requestSeedreamImages(payload, controller.signal);
+        const response = await requestImageGeneration(payload, controller.signal);
         setImages(response.data);
         setLastRequest(payload);
         const historyParams: HistoryParams = {
@@ -118,6 +120,7 @@ export function TextToImagePanel() {
       return;
     }
     const payload: SeedreamTextToImageRequest = {
+      model,
       prompt,
       width: dimensions.width,
       height: dimensions.height,
@@ -126,7 +129,7 @@ export function TextToImagePanel() {
       watermark: false,
     };
     void runGeneration(payload);
-  }, [aspectRatio, dimensions.height, dimensions.width, enhancedPrompt, rawPrompt, runGeneration]);
+  }, [aspectRatio, dimensions.height, dimensions.width, enhancedPrompt, rawPrompt, runGeneration, model]);
 
   const handleRegenerate = useCallback(() => {
     if (lastRequest) {
@@ -152,6 +155,7 @@ export function TextToImagePanel() {
 
         <section className="space-y-5 rounded-xl border border-border bg-surface/80 p-4 transition-colors">
           <div className="grid gap-4 lg:grid-cols-2">
+            <ModelSelector />
             <AspectSelector value={aspectRatio} onChange={setAspectRatio} />
             <ResolutionSelector value={resolution} onChange={setResolution} />
           </div>

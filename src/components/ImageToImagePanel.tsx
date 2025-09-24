@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useHistoryStore } from '../features/history/historyStore';
-import { enhancePrompt, requestSeedreamImages, type SeedreamImageToImageRequest } from '../lib/api';
+import { enhancePrompt, requestImageGeneration, type SeedreamImageToImageRequest } from '../lib/api';
 import { createId } from '../lib/id';
 import { prepareImageAsset } from '../lib/images';
 import { computeDimensions } from '../lib/imageSizing';
@@ -8,6 +8,7 @@ import { useAppStore } from '../store/appStore';
 import type { AspectRatio, HistoryItem, HistoryParams, ResolutionPreset } from '../types/history';
 import type { ImageAsset, ImageValidationError } from '../types/images';
 import { AspectSelector } from './AspectSelector';
+import { ModelSelector } from './ModelSelector';
 import { PreviewGrid } from './PreviewGrid';
 import { PromptBox } from './PromptBox';
 import { ResolutionSelector } from './ResolutionSelector';
@@ -16,9 +17,10 @@ const REFERENCE_LIMIT = 8;
 
 export function ImageToImagePanel() {
   const addHistory = useHistoryStore((state) => state.addItem);
-  const { pendingHistory, setPendingHistory } = useAppStore((state) => ({
+  const { pendingHistory, setPendingHistory, model } = useAppStore((state) => ({
     pendingHistory: state.pendingHistory,
     setPendingHistory: state.setPendingHistory,
+    model: state.model,
   }));
 
   const [sourceImage, setSourceImage] = useState<ImageAsset | null>(null);
@@ -164,7 +166,7 @@ export function ImageToImagePanel() {
       setIsGenerating(true);
       setGenerateError(undefined);
       try {
-        const response = await requestSeedreamImages(payload, controller.signal);
+        const response = await requestImageGeneration(payload, controller.signal);
         setImages(response.data);
         setLastRequest(payload);
         const historyParams: HistoryParams = {
@@ -207,6 +209,7 @@ export function ImageToImagePanel() {
       return;
     }
     const payload: SeedreamImageToImageRequest = {
+      model,
       prompt,
       width: dimensions.width,
       height: dimensions.height,
@@ -217,7 +220,17 @@ export function ImageToImagePanel() {
       references: referenceImages.map((item) => item.dataUrl),
     };
     void runGeneration(payload);
-  }, [aspectRatio, dimensions.height, dimensions.width, enhancedPrompt, rawPrompt, referenceImages, runGeneration, sourceImage]);
+  }, [
+    aspectRatio,
+    dimensions.height,
+    dimensions.width,
+    enhancedPrompt,
+    model,
+    rawPrompt,
+    referenceImages,
+    runGeneration,
+    sourceImage,
+  ]);
 
   const handleRegenerate = useCallback(() => {
     if (lastRequest) {
@@ -349,6 +362,7 @@ export function ImageToImagePanel() {
 
         <section className="space-y-5 rounded-xl border border-border bg-surface/80 p-4 transition-colors">
           <div className="grid gap-4 lg:grid-cols-2">
+            <ModelSelector />
             <AspectSelector value={aspectRatio} onChange={setAspectRatio} />
             <ResolutionSelector value={resolution} onChange={setResolution} />
           </div>

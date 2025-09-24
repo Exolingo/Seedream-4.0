@@ -62,16 +62,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (model === 'nano-banana') {
       apiKey = process.env.NANO_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ error: { message: 'NANO_API_KEY environment variable is not set.' } });
+      }
       apiBase = process.env.NANO_BASE || 'https://api.nanobanana.dev/v1/images/generations';
     } else {
       // This is the ARK path
       apiKey = process.env.ARK_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ error: { message: 'ARK_API_KEY environment variable is not set.' } });
+      }
       apiBase = process.env.ARK_BASE || 'https://ark.ap-southeast.bytepluses.com/api/v3/images/generations';
       finalBody = normalizeForArk(body); // Use the normalization function here
-    }
-
-    if (!apiKey) {
-      return res.status(500).json({ error: 'API_KEY is missing for the selected model' });
     }
     
     if (apiKey.toLowerCase().startsWith('bearer ')) {

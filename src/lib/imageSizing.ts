@@ -44,8 +44,8 @@ function clampAspect(rw: number, rh: number): { rw: number; rh: number } {
 
 function scaleToReachPixels(rw: number, rh: number, targetPixels: number) {
   const k = Math.ceil(Math.sqrt(targetPixels / (rw * rh)));
-  let width = rw * k;
-  let height = rh * k;
+  const width = rw * k;
+  const height = rh * k;
   return { width, height };
 }
 

@@ -27,7 +27,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       } else {
         setErr('비밀번호가 올바르지 않습니다.');
       }
-    } catch (e) {
+    } catch {
       setErr('로그인 요청에 실패했습니다.');
     } finally {
       setLoading(false);

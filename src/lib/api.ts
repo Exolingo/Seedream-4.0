@@ -1,9 +1,5 @@
-<<<<<<< HEAD
 import type { AspectRatio, GeneratedImage } from '../types/history';
 import type { ImageModel } from '../types/images';
-=======
-import type { AspectRatio, GeneratedImage } from "../types/history";
->>>>>>> 1869b78d6da91411233f5cf5c2954073b9a8aa3c
 
 export interface SeedreamRequestBase {
   model: ImageModel;
@@ -53,21 +49,14 @@ export interface PromptEnhancementResponse {
   rationale?: string;
 }
 
-<<<<<<< HEAD
-=======
-const DEFAULT_MODEL = "seedream-4-0-250828";
+
 const DEFAULT_RESPONSE_FORMAT: SeedreamRequestBase["response_format"] = "url";
 
 // Ark 직통 호출 제거 → 프록시만 사용
->>>>>>> 1869b78d6da91411233f5cf5c2954073b9a8aa3c
 const chatGptBase = import.meta.env.VITE_CHATGPT_BASE;
 const chatGptKey = import.meta.env.VITE_CHATGPT_API_KEY;
 
 if (import.meta.env.DEV) {
-<<<<<<< HEAD
-  if (!chatGptBase) console.warn('VITE_CHATGPT_BASE is not configured. Prompt enhancement will fail.');
-  if (!chatGptKey) console.warn('VITE_CHATGPT_API_KEY is not configured. Prompt enhancement will fail.');
-=======
   if (!chatGptBase)
     console.warn(
       "VITE_CHATGPT_BASE is not configured. Prompt enhancement will fail."
@@ -76,7 +65,6 @@ if (import.meta.env.DEV) {
     console.warn(
       "VITE_CHATGPT_API_KEY is not configured. Prompt enhancement will fail."
     );
->>>>>>> 1869b78d6da91411233f5cf5c2954073b9a8aa3c
 }
 
 interface RetryOptions {
@@ -219,18 +207,11 @@ export async function requestImageGeneration(
     body.image = imageField;
   }
 
-<<<<<<< HEAD
-  const response = await fetchWithRetry('/api/generate-image', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-=======
   // ✅ 항상 same-origin 프록시만 호출 (브라우저에서 Ark 직통 호출 금지 → CORS/키 노출 방지)
   const response = await fetchWithRetry("/api/generate-image", {
     method: "POST",
     headers: {
       "Content-Type": "application/json", // Authorization 헤더 절대 넣지 않음
->>>>>>> 1869b78d6da91411233f5cf5c2954073b9a8aa3c
     },
     body: JSON.stringify(body),
     signal,
@@ -263,7 +244,7 @@ export async function enhancePrompt(
       },
       {
         role: "user",
-        content: `작업 모드: ${modeLabel}. 원본 프롬프트:\n${payload.prompt}\n\n위 지침에 따라 Seedream 4.0에 최적화된 프롬프트를 만들어주세요.`,
+        content: `작업 모드: ${modeLabel}. 원본 프롬프트:\n${payload.prompt}\n\n위 지침에 따라 Seedream 4.0에 최적화된 프롬프트를 만들어주세요.`, 
       },
     ],
     max_output_tokens: payload.maxTokens ?? 400,

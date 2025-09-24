@@ -22,6 +22,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     );
     const stdReq = new Request(url.toString(), {
       method: "POST",
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       headers: req.headers as any,
       body: JSON.stringify(body),
     });
@@ -30,7 +31,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       request: stdReq,
       body,
       token,
-      onBeforeGenerateToken: async (_pathname, clientPayload, _multipart) => ({
+      onBeforeGenerateToken: async (_pathname, clientPayload) => ({
         allowedContentTypes: ["image/jpeg", "image/png", "image/webp"],
         addRandomSuffix: true,
         tokenPayload: clientPayload ?? "",

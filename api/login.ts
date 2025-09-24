@@ -9,9 +9,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { password } = (req.body as { password?: string }) ?? {};
   if (typeof password !== 'string') return res.status(400).json({ error: 'password required' });
 
-  // 간단 비교 (필요하면 타임-상수 비교로 교체 가능)
   if (password === expected) {
-    // 쿠키를 쓰지 않고, 탭 단위 세션을 위해 프론트에서 sessionStorage만 사용
     return res.status(200).json({ ok: true });
   }
   return res.status(401).json({ error: 'invalid password' });

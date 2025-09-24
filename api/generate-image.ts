@@ -48,6 +48,8 @@ function normalizeForArk(input: AnyBody): AnyBody {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  console.log('NANO_API_KEY:', process.env.NANO_API_KEY);
+  console.log('ARK_API_KEY:', process.env.ARK_API_KEY);
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
     return res.status(405).json({ error: { message: "Method Not Allowed" } });

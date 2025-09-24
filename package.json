@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@tanstack/react-query": "^5.51.1",
+    "@vercel/blob": "^2.0.0",
     "@vercel/node": "^5.3.22",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",

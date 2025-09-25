@@ -46,6 +46,8 @@ function normalizeForArk(input: AnyBody): AnyBody {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  console.log('NANO_API_KEY:', process.env.NANO_API_KEY);
+  console.log('ARK_API_KEY:', process.env.ARK_API_KEY);
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
     return res.status(405).json({ error: { message: "Method Not Allowed" } });
@@ -69,6 +71,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       apiKey = apiKey.slice(7).trim();
     }
 
+    console.log(`Proxying request for model "${model}" to: ${apiBase}`);
+
     const upstream = await fetch(apiBase, {
       method: 'POST',
       headers: {
@@ -82,6 +86,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const responseBody = ct.includes('application/json') ? await upstream.json() : await upstream.text();
     return res.status(upstream.status).send(responseBody);
   } catch (e: unknown) {
+    console.error('Proxy failed with error:', e);
     const message = e instanceof Error ? e.message : String(e);
     return res.status(500).json({ error: 'Proxy failed', detail: message });
   }

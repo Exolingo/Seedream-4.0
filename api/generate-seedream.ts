@@ -46,8 +46,6 @@ function normalizeForArk(input: AnyBody): AnyBody {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  console.log('NANO_API_KEY:', process.env.NANO_API_KEY);
-  console.log('ARK_API_KEY:', process.env.ARK_API_KEY);
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
     return res.status(405).json({ error: { message: "Method Not Allowed" } });
@@ -71,7 +69,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       apiKey = apiKey.slice(7).trim();
     }
 
-    console.log(`Proxying request for model "${model}" to: ${apiBase}`);
+    console.log(`Proxying request for model "${finalBody.model}" to: ${apiBase}`);
 
     const upstream = await fetch(apiBase, {
       method: 'POST',

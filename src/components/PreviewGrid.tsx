@@ -96,7 +96,7 @@ export function PreviewGrid({ images, loading, error, onRegenerate, className = 
                 rel="noreferrer"
                 className="rounded-md border border-border px-3 py-1 transition hover:bg-surface"
               >
-                새 탭에서 열기
+                저장하기
               </a>
             </div>
           </div>

@@ -62,10 +62,11 @@ export default function App() {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div>
             <h1 className="text-xl font-semibold">Seedream 4.0 스튜디오</h1>
-            <p className="text-xs text-muted">텍스트와 이미지를 조합해 Seedream 4.0 결과물을 빠르게 시도해 보세요.</p>
+            <p className="text-xs text-muted">
+              텍스트와 이미지를 조합해 Seedream 4.0 결과물을 빠르게 시도해 보세요.
+            </p>
           </div>
           <div className="flex items-center gap-3">
-            <ModelSelector />
             <button
               type="button"
               onClick={toggleTheme}
@@ -99,25 +100,33 @@ export default function App() {
 
       <main className="mx-auto max-w-6xl px-6 pb-12">
         <nav className="mt-8 flex flex-wrap items-center gap-3" aria-label="주요 탭">
-          {tabs.map((tab) => {
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id)}
-                className={`rounded-lg border px-4 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
-                  isActive
-                    ? 'border-primary bg-primary/10 text-primary shadow'
-                    : 'border-border bg-surface/60 text-muted hover:border-primary/60 hover:text-primary'
-                }`}
-                aria-pressed={isActive}
-              >
-                <div className="font-semibold">{tab.label}</div>
-                <div className="text-xs text-muted">{tab.description}</div>
-              </button>
-            );
-          })}
+          {/* 왼쪽: 탭 버튼 */}
+          <div className="flex flex-wrap items-center gap-3">
+            {tabs.map((tab) => {
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`rounded-lg border px-4 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                    isActive
+                      ? 'border-primary bg-primary/10 text-primary shadow'
+                      : 'border-border bg-surface/60 text-muted hover:border-primary/60 hover:text-primary'
+                  }`}
+                  aria-pressed={isActive}
+                >
+                  <div className="font-semibold">{tab.label}</div>
+                  <div className="text-xs text-muted">{tab.description}</div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* 오른쪽: 모델 선택 */}
+          <div className="ml-auto shrink-0">
+            <ModelSelector />
+          </div>
         </nav>
 
         <section className="mt-8">
@@ -125,7 +134,11 @@ export default function App() {
         </section>
       </main>
 
-      <HistoryDrawer open={historyOpen} onClose={() => setHistoryOpen(false)} onSelect={handleSelectHistory} />
+      <HistoryDrawer
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        onSelect={handleSelectHistory}
+      />
     </div>
   );
 }

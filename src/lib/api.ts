@@ -149,28 +149,23 @@ function normalizeDataUrl(url: string): string {
 
 /** i2i 입력에서 image/references를 API 요구 형식으로 병합 */
 function buildImageField(
-  payload: SeedreamTextToImageRequest | SeedreamImageToImageRequest
+  payload: { image?: string | string[]; references?: string[] }
 ): string | string[] | undefined {
-  const p = payload as SeedreamImageToImageRequest;
+  const p = payload;
 
-  // t2i의 경우 image가 없을 수 있음
-  if (p.image == null && !p.references?.length) return undefined;
+  if (p.image == null && !(p.references?.length)) return undefined;
 
-  // image가 이미 배열이면 우선 사용
   if (Array.isArray(p.image)) {
     const arr = p.image.filter(Boolean).map(normalizeDataUrl);
-    // 최대 10장 제한
     return arr.slice(0, 10);
   }
 
-  // image가 단일이고 references가 있다면 [image, ...references]
   const refs = (p.references ?? []).filter(Boolean).map(normalizeDataUrl);
   if (p.image) {
     const merged = [normalizeDataUrl(p.image), ...refs];
     return merged.slice(0, 10);
   }
 
-  // references만 있는 경우
   return refs.length ? refs.slice(0, 10) : undefined;
 }
 
@@ -209,8 +204,14 @@ export async function requestImageGeneration(
     body.size = bodyContent.size;
   }
 
+  type WithImages = { image?: string | string[]; references?: string[] };
+
+  const maybeImages: WithImages = {};
+  if ('image' in (payload))       maybeImages.image = (payload).image;
+  if ('references' in (payload))  maybeImages.references = (payload).references;
+
   // 여러 이미지 입력: 단일/배열/레퍼런스 모두 'image' 키 하나로
-  const imageField = buildImageField(bodyContent);
+  const imageField = buildImageField(maybeImages);
   if (imageField) {
     body.image = imageField;
   }

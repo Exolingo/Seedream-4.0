@@ -62,7 +62,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const apiBase = process.env.ARK_BASE || 'https://ark.ap-southeast.bytepluses.com/api/v3/images/generations';
     const finalBody = {
       ...normalizeForArk(body),
-      model: 'seedream-4.0',
+      model: 'seedream-4-0-250828',
     };
     
     if (apiKey.toLowerCase().startsWith('bearer ')) {

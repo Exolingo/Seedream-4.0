@@ -1,93 +1,153 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { GoogleGenAI, Part } from "@google/genai";
 
-// Get the API key from environment variables
 const apiKey = process.env.NANO_API_KEY;
-if (!apiKey) {
-  // Non-blocking error for Vercel deployment, but log it.
-  console.error("NANO_API_KEY environment variable is not set.");
-}
-
-const ai = new GoogleGenAI(apiKey || "");
 const modelName = "gemini-2.5-flash-image-preview";
+const googleApiBase = "https://generativelanguage.googleapis.com/v1beta";
 
-/**
- * Converts a base64 image string (with or without data URL prefix) to a Part for the Google GenAI API.
- */
-function base64ToPart(base64Data: string, mimeType: string): Part {
+type GeminiPart =
+  | { text: string }
+  | { inlineData: { mimeType: string; data: string } };
+
+function toInlineDataPart(source: string): GeminiPart {
+  if (!source.startsWith("data:")) {
+    return { inlineData: { mimeType: "image/png", data: source } };
+  }
+
+  const commaIndex = source.indexOf(",");
+  if (commaIndex === -1) {
+    return { inlineData: { mimeType: "image/png", data: source } };
+  }
+
+  const header = source.slice(0, commaIndex);
+  const data = source.slice(commaIndex + 1);
+  const mimeMatch = header.match(/^data:(.*?)(;base64)?$/i);
+  const mimeType = mimeMatch?.[1] ?? "image/png";
+
   return {
     inlineData: {
       mimeType,
-      // Remove data URL prefix if it exists
-      data: base64Data.startsWith('data:') ? base64Data.split(',')[1] : base64Data,
+      data,
     },
   };
 }
 
+function buildGeminiParts(prompt: string, image?: string | string[]): GeminiPart[] {
+  const parts: GeminiPart[] = [{ text: prompt }];
+
+  if (!image) {
+    return parts;
+  }
+
+  const images = Array.isArray(image) ? image : [image];
+  for (const img of images) {
+    if (!img) continue;
+    parts.push(toInlineDataPart(img));
+  }
+
+  return parts;
+}
+
+async function parseGoogleError(response: Response): Promise<string> {
+  try {
+    const data = await response.json();
+    if (data?.error?.message) return data.error.message as string;
+    if (typeof data?.error === "string") return data.error;
+    return JSON.stringify(data);
+  } catch {
+    return `${response.status} ${response.statusText}`;
+  }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!apiKey) {
-    return res.status(500).json({ error: { message: 'The app is not configured correctly. NANO_API_KEY is missing.' } });
+    return res.status(500).json({
+      error: { message: "The app is not configured correctly. NANO_API_KEY is missing." },
+    });
   }
-  
+
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
     return res.status(405).json({ error: { message: "Method Not Allowed" } });
   }
 
   try {
-    const { prompt, image } = req.body;
+    const { prompt, image } = req.body as { prompt?: string; image?: string | string[] };
 
     if (!prompt) {
       return res.status(400).json({ error: "Prompt is required." });
     }
 
-    const contents: Part[] = [{ text: prompt }];
+    const parts = buildGeminiParts(prompt, image);
 
-    // Handle image-to-image generation
-    if (image) {
-        const images = Array.isArray(image) ? image : [image];
-        for (const img of images) {
-            // The client might send different image formats, but we'll default to png for the API.
-            contents.push(base64ToPart(img, "image/png"));
+    const upstream = await fetch(
+      `${googleApiBase}/models/${modelName}:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: "user",
+              parts,
+            },
+          ],
+        }),
+      },
+    );
+
+    if (!upstream.ok) {
+      const message = await parseGoogleError(upstream);
+      return res.status(upstream.status).json({ error: "Image generation failed.", detail: message });
+    }
+
+    const json = await upstream.json();
+    const generatedImages: { url: string }[] = [];
+
+    let fallbackDetail: string | undefined;
+
+    if (Array.isArray(json?.candidates)) {
+      for (const candidate of json.candidates) {
+        const content = candidate?.content;
+        const partsList = Array.isArray(content?.parts)
+          ? content.parts
+          : Array.isArray(content)
+          ? content
+          : [];
+
+        for (const part of partsList) {
+          const inline = part?.inlineData;
+          if (inline?.data) {
+            const mime = inline.mimeType || "image/png";
+            generatedImages.push({ url: `data:${mime};base64,${inline.data}` });
+          }
+
+          if (!fallbackDetail && typeof part?.text === "string") {
+            fallbackDetail = part.text;
+          }
         }
+      }
     }
 
-    const model = ai.getGenerativeModel({ model: modelName });
-    const result = await model.generateContent({ contents });
-    const response = result.response;
+    fallbackDetail =
+      fallbackDetail ?? json?.promptFeedback?.blockReason ?? json?.promptFeedback?.safetyRatings?.[0]?.category;
 
-    const generatedImages = [];
-    if (response.candidates && response.candidates.length > 0) {
-        for (const candidate of response.candidates) {
-            for (const part of candidate.content.parts) {
-                if (part.inlineData) {
-                    const imageData = part.inlineData.data;
-                    const dataUrl = `data:${part.inlineData.mimeType};base64,${imageData}`;
-                    generatedImages.push({ url: dataUrl });
-                }
-            }
-        }
+    if (!generatedImages.length) {
+      return res.status(500).json({
+        error: "Image generation failed.",
+        detail: fallbackDetail ?? "No image was generated and no explanation was provided.",
+      });
     }
 
-
-    if (generatedImages.length === 0) {
-        // Check for text response which might indicate an error or refusal from the model
-        const textResponse = response.text() ?? "No image was generated and no text explanation was provided.";
-        return res.status(500).json({ error: "Image generation failed.", detail: textResponse });
-    }
-
-    // Return the response in the format the client expects
-    const clientResponse = {
+    return res.status(200).json({
       model: `nano-banana (${modelName})`,
       created: Date.now(),
       data: generatedImages,
-    };
-
-    return res.status(200).json(clientResponse);
-
+    });
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : String(e);
     console.error(e);
-    return res.status(500).json({ error: 'Request failed', detail: message });
+    return res.status(500).json({ error: "Request failed", detail: message });
   }
 }

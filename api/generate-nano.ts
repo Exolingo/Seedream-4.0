@@ -1,62 +1,70 @@
+// api/generate-nano.ts
+import { GoogleGenAI } from "@google/genai";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
+/** 환경변수:
+ *  NANO_API_KEY: Gemini API Key
+ *  NANO_MODEL  : (선택) 기본값은 gemini-2.5-flash-image-preview
+ */
 const apiKey = process.env.NANO_API_KEY;
-const modelName = "gemini-2.5-flash-image-preview";
-const googleApiBase = "https://generativelanguage.googleapis.com/v1beta";
+const modelName = process.env.NANO_MODEL || "gemini-2.5-flash-image-preview";
 
-type GeminiPart =
-  | { text: string }
-  | { inlineData: { mimeType: string; data: string } };
+/* -------------------- 타입 정의 -------------------- */
 
-function toInlineDataPart(source: string): GeminiPart {
-  if (!source.startsWith("data:")) {
-    return { inlineData: { mimeType: "image/png", data: source } };
-  }
+/** data URL 파싱 결과 */
+interface DataUrlInfo {
+  mimeType: string;
+  base64: string;
+}
 
-  const commaIndex = source.indexOf(",");
-  if (commaIndex === -1) {
-    return { inlineData: { mimeType: "image/png", data: source } };
-  }
-
-  const header = source.slice(0, commaIndex);
-  const data = source.slice(commaIndex + 1);
-  const mimeMatch = header.match(/^data:(.*?)(;base64)?$/i);
-  const mimeType = mimeMatch?.[1] ?? "image/png";
-
-  return {
-    inlineData: {
-      mimeType,
-      data,
-    },
+/** Gemini content의 이미지 파트(inlineData) */
+interface InlineDataPart {
+  inlineData: {
+    mimeType?: string;
+    data: string; // base64
   };
 }
 
-function buildGeminiParts(prompt: string, image?: string | string[]): GeminiPart[] {
-  const parts: GeminiPart[] = [{ text: prompt }];
+/** 우리가 구성해서 넘길 contents 타입 (텍스트 + 이미지 파트)  */
+type NanoContent = string | InlineDataPart;
 
-  if (!image) {
-    return parts;
-  }
-
-  const images = Array.isArray(image) ? image : [image];
-  for (const img of images) {
-    if (!img) continue;
-    parts.push(toInlineDataPart(img));
-  }
-
-  return parts;
+/** 응답 파트 중 inlineData를 가진 것만 골라내기 위한 type guard */
+function hasInlineData(part: unknown): part is InlineDataPart {
+  if (typeof part !== "object" || part === null) return false;
+  const p = part as { inlineData?: { data?: unknown } };
+  return !!p.inlineData && typeof p.inlineData.data === "string";
 }
 
-async function parseGoogleError(response: Response): Promise<string> {
-  try {
-    const data = await response.json();
-    if (data?.error?.message) return data.error.message as string;
-    if (typeof data?.error === "string") return data.error;
-    return JSON.stringify(data);
-  } catch {
-    return `${response.status} ${response.statusText}`;
-  }
+/* -------------------- 유틸 함수 -------------------- */
+
+/** data URL -> { mimeType, base64 } */
+function parseDataUrl(url: string): DataUrlInfo | null {
+  if (!url?.startsWith("data:")) return null;
+  const [head, base64] = url.split(",", 2);
+  if (!head || !base64) return null;
+  // e.g. data:image/png;base64,....
+  const mimeMatch = head.match(/^data:([^;]+);base64$/i);
+  const mimeType = mimeMatch?.[1] ?? "image/png";
+  return { mimeType, base64 };
 }
+
+/** null 제거용 type guard */
+function isNotNull<T>(v: T | null): v is T {
+  return v !== null;
+}
+
+/** 문자열 또는 문자열 배열을 inlineData 파트 배열로 */
+function imagesToInlineParts(image: string | string[] | undefined): InlineDataPart[] {
+  const list = Array.isArray(image) ? image : image ? [image] : [];
+  return list
+    .map(parseDataUrl)
+    .filter(isNotNull) // <- null 확실히 제거 (타입 좁히기)
+    .map(({ mimeType, base64 }) => ({
+      inlineData: { mimeType, data: base64 },
+    }));
+}
+
+/* -------------------- 핸들러 -------------------- */
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!apiKey) {
@@ -64,86 +72,61 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       error: { message: "The app is not configured correctly. NANO_API_KEY is missing." },
     });
   }
-
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
     return res.status(405).json({ error: { message: "Method Not Allowed" } });
   }
 
   try {
-    const { prompt, image } = req.body as { prompt?: string; image?: string | string[] };
+    const { prompt, image } = req.body as {
+      prompt?: string;
+      image?: string | string[];
+      // width/height/size 등은 현재 Gemini 이미지 모델에서 무시됩니다.
+    };
 
-    if (!prompt) {
+    if (!prompt?.trim()) {
       return res.status(400).json({ error: "Prompt is required." });
     }
 
-    const parts = buildGeminiParts(prompt, image);
+    // 1) SDK 초기화
+    const ai = new GoogleGenAI({ apiKey });
 
-    const upstream = await fetch(
-      `${googleApiBase}/models/${modelName}:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              role: "user",
-              parts,
-            },
-          ],
-        }),
-      },
-    );
+    // 2) contents 구성: [텍스트, (선택) 이미지들]
+    const contents: NanoContent[] = [prompt];
+    const imageParts = imagesToInlineParts(image);
+    contents.push(...imageParts);
 
-    if (!upstream.ok) {
-      const message = await parseGoogleError(upstream);
-      return res.status(upstream.status).json({ error: "Image generation failed.", detail: message });
-    }
+    // 3) 이미지 생성 호출
+    const response = await ai.models.generateContent({
+      model: modelName, // ex) gemini-2.5-flash-image-preview
+      contents,
+    });
 
-    const json = await upstream.json();
-    const generatedImages: { url: string }[] = [];
+    // 4) 응답 파싱: inlineData(= base64)만 이미지로 수집
+    const parts: unknown[] = response.candidates?.[0]?.content?.parts ?? [];
+    const images = parts
+      .filter(hasInlineData)
+      .map((p) => {
+        const mime = p.inlineData.mimeType ?? "image/png";
+        const base64 = p.inlineData.data; // base64 string
+        return { url: `data:${mime};base64,${base64}`, size: "unknown" as const };
+      });
 
-    let fallbackDetail: string | undefined;
-
-    if (Array.isArray(json?.candidates)) {
-      for (const candidate of json.candidates) {
-        const content = candidate?.content;
-        const partsList = Array.isArray(content?.parts)
-          ? content.parts
-          : Array.isArray(content)
-          ? content
-          : [];
-
-        for (const part of partsList) {
-          const inline = part?.inlineData;
-          if (inline?.data) {
-            const mime = inline.mimeType || "image/png";
-            generatedImages.push({ url: `data:${mime};base64,${inline.data}` });
-          }
-
-          if (!fallbackDetail && typeof part?.text === "string") {
-            fallbackDetail = part.text;
-          }
-        }
-      }
-    }
-
-    fallbackDetail =
-      fallbackDetail ?? json?.promptFeedback?.blockReason ?? json?.promptFeedback?.safetyRatings?.[0]?.category;
-
-    if (!generatedImages.length) {
+    if (!images.length) {
+      // 안전필터/정책 차단 등으로 이미지가 없을 수도 있음
       return res.status(500).json({
         error: "Image generation failed.",
-        detail: fallbackDetail ?? "No image was generated and no explanation was provided.",
+        detail:
+          response.promptFeedback?.blockReason ??
+          "No inline image data was returned by the model.",
       });
     }
 
+    // 5) Seedream 형식에 맞춘 응답
     return res.status(200).json({
       model: `nano-banana (${modelName})`,
       created: Date.now(),
-      data: generatedImages,
+      data: images,
     });
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : String(e);

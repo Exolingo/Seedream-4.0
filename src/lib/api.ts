@@ -178,37 +178,45 @@ export async function requestImageGeneration(
   payload: SeedreamTextToImageRequest | SeedreamImageToImageRequest,
   signal?: AbortSignal
 ): Promise<SeedreamResponse> {
+  const apiEndpoint =
+    payload.model === "nano-banana"
+      ? "/api/generate-nano"
+      : "/api/generate-seedream";
+
+  // model 필드는 프록시 핸들러에서 더 이상 사용하지 않으므로 제외
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { model, ...bodyContent } = payload;
+
   // Seedream 4.0은 seed/guidance_scale 미지원 → 바디에서 제외
   const body: Record<string, unknown> = {
-    model: payload.model,
-    prompt: payload.prompt,
-    response_format: payload.response_format ?? DEFAULT_RESPONSE_FORMAT,
-    aspect_ratio: payload.aspect_ratio,
-    stream: payload.stream ?? false,
-    watermark: payload.watermark ?? true,
+    prompt: bodyContent.prompt,
+    response_format: bodyContent.response_format ?? DEFAULT_RESPONSE_FORMAT,
+    aspect_ratio: bodyContent.aspect_ratio,
+    stream: bodyContent.stream ?? false,
+    watermark: bodyContent.watermark ?? true,
     sequential_image_generation:
-      payload.sequential_image_generation ?? "disabled",
+      bodyContent.sequential_image_generation ?? "disabled",
     sequential_image_generation_options:
-      payload.sequential_image_generation_options,
-    steps: payload.steps, // 필요 시만 전달
+      bodyContent.sequential_image_generation_options,
+    steps: bodyContent.steps, // 필요 시만 전달
   };
 
   // width/height 또는 size 중 하나만 사용 (동시 전송 금지)
-  if (payload.width && payload.height) {
-    body.width = payload.width;
-    body.height = payload.height;
-  } else if (payload.size) {
-    body.size = payload.size;
+  if (bodyContent.width && bodyContent.height) {
+    body.width = bodyContent.width;
+    body.height = bodyContent.height;
+  } else if (bodyContent.size) {
+    body.size = bodyContent.size;
   }
 
   // 여러 이미지 입력: 단일/배열/레퍼런스 모두 'image' 키 하나로
-  const imageField = buildImageField(payload);
+  const imageField = buildImageField(bodyContent);
   if (imageField) {
     body.image = imageField;
   }
 
   // ✅ 항상 same-origin 프록시만 호출 (브라우저에서 Ark 직통 호출 금지 → CORS/키 노출 방지)
-  const response = await fetchWithRetry("/api/generate-image", {
+  const response = await fetchWithRetry(apiEndpoint, {
     method: "POST",
     headers: {
       "Content-Type": "application/json", // Authorization 헤더 절대 넣지 않음

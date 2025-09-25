@@ -1,7 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
-
-
 type AnyBody = {
   size?: string; // "WxH" (예: "1280x720")
   width?: number; // 클라 기록용: 서버에서 제거
@@ -54,27 +52,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { model, ...body } = req.body;
+    const body = req.body;
 
-    let apiKey: string | undefined;
-    let apiBase: string;
-    let finalBody: AnyBody = body;
-
-    if (model === 'nano-banana') {
-      apiKey = process.env.NANO_API_KEY;
-      if (!apiKey) {
-        return res.status(500).json({ error: { message: 'NANO_API_KEY environment variable is not set.' } });
-      }
-      apiBase = process.env.NANO_BASE || 'https://api.nanobanana.dev/v1/images/generations';
-    } else {
-      // This is the ARK path
-      apiKey = process.env.ARK_API_KEY;
-      if (!apiKey) {
-        return res.status(500).json({ error: { message: 'ARK_API_KEY environment variable is not set.' } });
-      }
-      apiBase = process.env.ARK_BASE || 'https://ark.ap-southeast.bytepluses.com/api/v3/images/generations';
-      finalBody = normalizeForArk(body); // Use the normalization function here
+    // This is the ARK path
+    let apiKey = process.env.ARK_API_KEY;
+    if (!apiKey) {
+      return res.status(500).json({ error: { message: 'ARK_API_KEY environment variable is not set.' } });
     }
+    const apiBase = process.env.ARK_BASE || 'https://ark.ap-southeast.bytepluses.com/api/v3/images/generations';
+    const finalBody = {
+      ...normalizeForArk(body),
+      model: 'seedream-4.0',
+    };
     
     if (apiKey.toLowerCase().startsWith('bearer ')) {
       apiKey = apiKey.slice(7).trim();

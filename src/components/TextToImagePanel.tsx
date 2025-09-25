@@ -9,7 +9,6 @@ import { createId } from '../lib/id';
 import { useHistoryStore } from '../features/history/historyStore';
 import { useAppStore } from '../store/appStore';
 import type { AspectRatio, HistoryItem, HistoryParams, ResolutionPreset } from '../types/history';
-import { ModelSelector } from './ModelSelector';
 
 export function TextToImagePanel() {
   const addHistory = useHistoryStore((state) => state.addItem);
@@ -155,7 +154,6 @@ export function TextToImagePanel() {
 
         <section className="space-y-5 rounded-xl border border-border bg-surface/80 p-4 transition-colors">
           <div className="grid gap-4 lg:grid-cols-2">
-            <ModelSelector />
             <AspectSelector value={aspectRatio} onChange={setAspectRatio} />
             <ResolutionSelector value={resolution} onChange={setResolution} />
           </div>

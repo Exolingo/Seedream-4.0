@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { ImageToImagePanel } from './components/ImageToImagePanel';
 import LogoutButton from './components/LogoutButton';
+import { ModelSelector } from './components/ModelSelector';
 import { TextToImagePanel } from './components/TextToImagePanel';
 import { HistoryDrawer } from './features/history/HistoryDrawer';
 import { useAppStore } from './store/appStore';
@@ -64,6 +65,7 @@ export default function App() {
             <p className="text-xs text-muted">텍스트와 이미지를 조합해 Seedream 4.0 결과물을 빠르게 시도해 보세요.</p>
           </div>
           <div className="flex items-center gap-3">
+            <ModelSelector />
             <button
               type="button"
               onClick={toggleTheme}

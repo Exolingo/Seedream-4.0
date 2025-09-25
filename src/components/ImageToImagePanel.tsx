@@ -18,7 +18,6 @@ import type {
 } from "../types/history";
 import type { ImageAsset, ImageValidationError } from "../types/images";
 import { AspectSelector } from "./AspectSelector";
-import { ModelSelector } from "./ModelSelector";
 import { PreviewGrid } from "./PreviewGrid";
 import { PromptBox } from "./PromptBox";
 import { ResolutionSelector } from "./ResolutionSelector";
@@ -446,7 +445,6 @@ export function ImageToImagePanel() {
 
         <section className="space-y-5 rounded-xl border border-border bg-surface/80 p-4 transition-colors">
           <div className="grid gap-4 lg:grid-cols-2">
-            <ModelSelector />
             <AspectSelector value={aspectRatio} onChange={setAspectRatio} />
             <ResolutionSelector value={resolution} onChange={setResolution} />
           </div>

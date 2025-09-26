@@ -78,9 +78,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { prompt, image } = req.body as {
+    const { prompt, image, aspect_ratio } = req.body as {
       prompt?: string;
       image?: string | string[];
+      aspect_ratio?: string;
       // width/height/size 등은 현재 Gemini 이미지 모델에서 무시됩니다.
     };
 
@@ -88,11 +89,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: "Prompt is required." });
     }
 
+    // 나노바나나 모델을 위해 프롬프트에 화면 비율 추가
+    const finalPrompt = aspect_ratio ? `${prompt} (aspect ratio: ${aspect_ratio})` : prompt;
+
     // 1) SDK 초기화
     const ai = new GoogleGenAI({ apiKey });
 
     // 2) contents 구성: [텍스트, (선택) 이미지들]
-    const contents: NanoContent[] = [prompt];
+    const contents: NanoContent[] = [finalPrompt];
     const imageParts = imagesToInlineParts(image);
     contents.push(...imageParts);
 

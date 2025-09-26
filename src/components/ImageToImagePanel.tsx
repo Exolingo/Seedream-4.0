@@ -218,6 +218,8 @@ export function ImageToImagePanel() {
           width: payload.width ?? dimensions.width,
           height: payload.height ?? dimensions.height,
         };
+        const isNano = model.startsWith("nano-banana");
+
         const historyItem: HistoryItem = {
           id: createId(),
           createdAt: Date.now(),
@@ -225,8 +227,9 @@ export function ImageToImagePanel() {
           promptRaw: rawPrompt,
           promptEnhanced: enhancedPrompt || undefined,
           params: historyParams,
-          thumb: response.data[0]?.url,
-          url: response.data[0]?.url,
+          // 나노바나나 모델은 생성 결과가 base64라 너무 길어서 히스토리에 저장하지 않음
+          thumb: isNano ? undefined : response.data[0]?.url,
+          url: isNano ? undefined : response.data[0]?.url,
         };
         addHistory(historyItem);
       } catch (error) {
@@ -260,12 +263,19 @@ export function ImageToImagePanel() {
       return;
     }
 
-    const urls = [
-      sourceImage.blobUrl,
-      ...(referenceImages
-        .map((item) => item.blobUrl)
-        .filter(Boolean) as string[]),
-    ];
+    const isNano = model.startsWith("nano-banana");
+
+    const urls = isNano
+      ? [
+          sourceImage.dataUrl,
+          ...referenceImages.map((item) => item.dataUrl),
+        ]
+      : [
+          sourceImage.blobUrl,
+          ...(referenceImages
+            .map((item) => item.blobUrl)
+            .filter(Boolean) as string[]),
+        ];
 
     const payload: SeedreamImageToImageRequest = {
       model,

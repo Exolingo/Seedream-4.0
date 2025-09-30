@@ -90,7 +90,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // 나노바나나 모델을 위해 프롬프트에 화면 비율 추가
-    const finalPrompt = aspect_ratio ? `${prompt} (aspect ratio: ${aspect_ratio})` : prompt;
+    const finalPrompt = aspect_ratio ? `${prompt} (화면 비율: ${aspect_ratio})` : prompt;
 
     // 1) SDK 초기화
     const ai = new GoogleGenAI({ apiKey });

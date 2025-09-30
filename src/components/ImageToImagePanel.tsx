@@ -7,6 +7,7 @@ import {
   type SeedreamImageToImageRequest,
 } from "../lib/api";
 import { createId } from "../lib/id";
+import { injectAspectRatioIntoPrompt } from "../lib/modelPrompts";
 import { prepareImageAsset } from "../lib/images";
 import { computeDimensions } from "../lib/imageSizing";
 import { useAppStore } from "../store/appStore";
@@ -306,9 +307,11 @@ export function ImageToImagePanel() {
             .filter(Boolean) as string[]),
         ];
 
+    const finalPrompt = injectAspectRatioIntoPrompt(model, prompt, aspectRatio);
+
     const payload: SeedreamImageToImageRequest = {
       model,
-      prompt,
+      prompt: finalPrompt,
       width: dimensions.width,
       height: dimensions.height,
       aspect_ratio: aspectRatio,

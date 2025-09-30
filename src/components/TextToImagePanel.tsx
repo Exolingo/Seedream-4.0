@@ -9,7 +9,6 @@ import { createId } from '../lib/id';
 import { useHistoryStore } from '../features/history/historyStore';
 import { useAppStore } from '../store/appStore';
 import type { AspectRatio, HistoryItem, HistoryParams, ResolutionPreset } from '../types/history';
-import { injectAspectRatioIntoPrompt } from '../lib/modelPrompts';
 
 export function TextToImagePanel() {
   const addHistory = useHistoryStore((state) => state.addItem);
@@ -119,10 +118,9 @@ export function TextToImagePanel() {
       setGenerateError('프롬프트를 입력해주세요.');
       return;
     }
-    const finalPrompt = injectAspectRatioIntoPrompt(model, prompt, aspectRatio);
     const payload: SeedreamTextToImageRequest = {
       model,
-      prompt: finalPrompt,
+      prompt,
       width: dimensions.width,
       height: dimensions.height,
       aspect_ratio: aspectRatio,

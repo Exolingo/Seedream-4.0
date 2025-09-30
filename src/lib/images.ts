@@ -2,7 +2,7 @@ import type { ImageAsset, ImageValidationError } from '../types/images';
 import { createId } from './id';
 
 const SUPPORTED_FORMATS = ['image/jpeg', 'image/png'];
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4MB
 const MIN_RATIO = 1 / 3;
 const MAX_RATIO = 3;
 
@@ -29,7 +29,7 @@ export async function validateImageFile(file: File): Promise<ImageValidationErro
     return { code: 'format', message: 'Only JPEG and PNG files are supported.' };
   }
   if (file.size > MAX_FILE_SIZE) {
-    return { code: 'size', message: 'Images must be smaller than 10MB.' };
+    return { code: 'size', message: 'Images must be smaller than 4MB.' };
   }
   const dataUrl = await fileToDataUrl(file);
   const { width, height } = await readImageSize(dataUrl);

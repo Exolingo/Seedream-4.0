@@ -283,6 +283,9 @@ export async function enhancePrompt(
 }
 
 async function extractErrorMessage(response: Response): Promise<string> {
+  if (response.status === 413) {
+    return "첨부된 이미지의 용량이 너무 큽니다.";
+  }
   try {
     const data = await response.json();
     if (typeof data?.error === "string") return data.error;

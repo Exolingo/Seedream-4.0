@@ -45,6 +45,7 @@ export function ImageToImagePanel() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [images, setImages] = useState<{ url: string; size: string }[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [generateError, setGenerateError] = useState<string | undefined>();
   const [enhancing, setEnhancing] = useState(false);
   const [enhancementError, setEnhancementError] = useState<
@@ -144,14 +145,20 @@ export function ImageToImagePanel() {
     async (fileList: FileList | null) => {
       if (!fileList?.length) return;
       const file = fileList[0];
+      setIsUploading(true);
       try {
         const asset = await prepareImageAsset(file);
+        setSourceImage(asset);
+        setUploadError(null);
+
         const uploadFile = await dataUrlToFile(file.name, asset.dataUrl);
         const blobUrl = await toBlobUrl(uploadFile);
         setSourceImage({ ...asset, blobUrl });
-        setUploadError(null);
       } catch (error) {
         handleFileError(error as ImageValidationError | Error);
+        setSourceImage(null);
+      } finally {
+        setIsUploading(false);
       }
     },
     [dataUrlToFile, toBlobUrl]
@@ -160,23 +167,48 @@ export function ImageToImagePanel() {
   const handleReferenceChange = useCallback(
     async (fileList: FileList | null) => {
       if (!fileList?.length) return;
-      const current = [...referenceImages];
-      const availableSlots = REFERENCE_LIMIT - current.length;
-      const files = Array.from(fileList).slice(0, availableSlots);
+      setIsUploading(true);
+      try {
+        const current = [...referenceImages];
+        const availableSlots = REFERENCE_LIMIT - current.length;
+        const files = Array.from(fileList).slice(0, availableSlots);
 
-      const newAssets: BlobAsset[] = [];
-      for (const file of files) {
-        try {
-          const asset = await prepareImageAsset(file);
-          const uploadFile = await dataUrlToFile(file.name, asset.dataUrl);
-          const blobUrl = await toBlobUrl(uploadFile);
-          newAssets.push({ ...asset, blobUrl });
-        } catch (error) {
-          handleFileError(error as ImageValidationError | Error);
-          break;
+        // 먼저 UI에 이미지 표시
+        const preparedAssets: BlobAsset[] = [];
+        for (const file of files) {
+          try {
+            const asset = await prepareImageAsset(file);
+            preparedAssets.push(asset);
+          } catch (error) {
+            handleFileError(error as ImageValidationError | Error);
+          }
         }
+        setReferenceImages([...current, ...preparedAssets]);
+
+        // 다음으로 순차적으로 업로드
+        const uploadedAssets: BlobAsset[] = [];
+        for (const asset of preparedAssets) {
+          try {
+            const uploadFile = await dataUrlToFile(asset.name, asset.dataUrl);
+            const blobUrl = await toBlobUrl(uploadFile);
+            uploadedAssets.push({ ...asset, blobUrl });
+          } catch (error) {
+            handleFileError(error as ImageValidationError | Error);
+            // 업로드 실패 시 UI에서 제거
+            setReferenceImages((prev) => prev.filter((p) => p.id !== asset.id));
+            break; // 중단
+          }
+        }
+
+        // 업로드 완료된 항목으로 상태 업데이트
+        setReferenceImages((prev) =>
+          prev.map(
+            (p) => uploadedAssets.find((u) => u.id === p.id) || p
+          )
+        );
+      } finally {
+        setIsUploading(false);
       }
-      setReferenceImages([...current, ...newAssets]);
     },
     [referenceImages, dataUrlToFile, toBlobUrl]
   );
@@ -323,7 +355,7 @@ export function ImageToImagePanel() {
           <div>
             <h3 className="text-sm font-semibold text-text">원본 이미지</h3>
             <p className="text-xs text-muted">
-              JPEG 또는 PNG, 최대 10MB. 가로:세로 비율은 1:3~3:1 범위를
+              JPEG 또는 PNG, 최대 4MB. 가로:세로 비율은 1:3~3:1 범위를
               권장합니다.
             </p>
             <div className="mt-2 rounded-lg border border-dashed border-border p-4">
@@ -339,7 +371,11 @@ export function ImageToImagePanel() {
                     <span>
                       {(sourceImage.size / 1024).toFixed(0)} KB ·{" "}
                       {sourceImage.width}×{sourceImage.height}
-                      {sourceImage.blobUrl ? " · 업로드 완료" : ""}
+                      {isUploading && !sourceImage.blobUrl
+                        ? " · 업로드 중..."
+                        : sourceImage.blobUrl
+                          ? " · 업로드 완료"
+                          : ""}
                     </span>
                   </div>
                   <button
@@ -409,7 +445,11 @@ export function ImageToImagePanel() {
                         </span>
                         <span>
                           {(item.size / 1024).toFixed(0)} KB
-                          {item.blobUrl ? " · 업로드 완료" : ""}
+                          {isUploading && !item.blobUrl
+                            ? " · 업로드 중..."
+                            : item.blobUrl
+                              ? " · 업로드 완료"
+                              : ""}
                         </span>
                       </div>
                       <div className="mt-2 flex items-center justify-between text-xs">
